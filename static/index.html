@@ -44,10 +44,10 @@
       <div class="session" id="session" hidden>
         <form id="session-form">
           <label class="label" for="api-key"><span id="key-for">API</span> key
-            &mdash; this session only</label>
+            for this session only</label>
           <input type="password" id="api-key" placeholder="paste it here" autocomplete="off" spellcheck="false" />
           <div id="balance-row" hidden>
-            <label class="label" for="balance">Credits left, &#8377; &mdash; optional</label>
+            <label class="label" for="balance">Credits left, &#8377; (optional)</label>
             <input type="number" id="balance" placeholder="100" min="0" step="0.01" />
           </div>
           <div class="session-row">
@@ -56,7 +56,7 @@
             <a class="session-keys" id="keys-link" rel="noopener" target="_blank">Get a key</a>
           </div>
           <p class="session-note">Held in this server&rsquo;s memory until you end the
-            session &mdash; never written to disk, never sent back to this page, never
+            session: never written to disk, never sent back to this page, never
             saved anywhere. Closing the tab does not end it; the <em>End session</em>
             button does.</p>
           <p class="session-err" id="session-err" hidden></p>
@@ -133,10 +133,10 @@
           rather than reading the whole hour.</p>
         <ul class="legend">
           <li id="legend-yellow"><span class="swatch yellow"></span>
-            <span><strong>Yellow</strong> &mdash; the model scored this word below the
+            <span><strong>Yellow.</strong> The model scored this word below the
               confidence threshold. Jump to the timestamp and check it.</span></li>
           <li><span class="swatch turq"></span>
-            <span><strong>Turquoise</strong> &mdash; an English word that came out in Latin
+            <span><strong>Turquoise.</strong> An English word that came out in Latin
               script instead of Devanagari. The model decides this per word and is not
               consistent about it, so these are flagged for a human rather than
               transliterated automatically.</span></li>
@@ -153,28 +153,28 @@
       <summary>Where does my recording go?</summary>
       <p id="faq-privacy">To the transcription service you selected, and nowhere else.
         This server keeps the upload only until the transcript is written, then deletes
-        it &mdash; but the copy the service received is not this server&rsquo;s to
+        it, but the copy the service received is not this server&rsquo;s to
         delete. Read their retention policy before sending anything sensitive.</p>
     </details>
     <details>
       <summary>Where is my API key kept?</summary>
       <p>In this server&rsquo;s memory, for the length of the session. It is never
         written to disk, never sent back to the page, and never included in any status
-        response. Ending the session &mdash; or restarting the server &mdash; erases it.
+        response. Ending the session, or restarting the server, erases it.
         Closing the tab does not: use the End session button.</p>
     </details>
     <details>
       <summary>Why does the progress bar creep instead of stepping?</summary>
       <p id="faq-progress">Because none of these services report progress. They accept a
         file and answer when they are finished. The bar is an estimate from how long the
-        job has been running against the length of the recording &mdash; shown with a
+        job has been running against the length of the recording, shown with a
         &ldquo;~&rdquo; because that is a guess, not a measurement. It eases toward the
         end and waits there until the transcript actually lands.</p>
     </details>
     <details>
       <summary>What does it cost?</summary>
       <p>Sarvam bills &#8377;30 per hour of audio, or &#8377;45 with speaker labels on,
-        counted per second from the moment a job starts &mdash; a run that fails or is
+        counted per second from the moment a job starts; a run that fails or is
         stopped is billed in full. ElevenLabs bills against your plan&rsquo;s quota. The
         meter above the drop zone counts what this session has spent.</p>
     </details>
@@ -185,7 +185,7 @@
     </details>
     <details>
       <summary>Nothing is highlighted. Is it perfect?</summary>
-      <p>Unlikely. On Sarvam nothing is ever highlighted &mdash; it reports no per-word
+      <p>Unlikely. On Sarvam nothing is ever highlighted, since it reports no per-word
         confidence, so the check never runs. Elsewhere it means the threshold is set too
         low for this audio. Treat an empty review table as a reason to spot-check, never
         as a clean bill of health.</p>
@@ -225,7 +225,7 @@ const mb = n => n > 1073741824 ? (n / 1073741824).toFixed(1) + ' GB'
 const money = n => '₹' + Number(n).toFixed(2);
 
 // Which service transcribes, and on whose key. Every backend here is hosted, so the
-// page makes no promise about staying on this machine — what it does vary is the
+// page makes no promise about staying on this machine. What it does vary is the
 // service name and whether that service reports per-word confidence, because a page
 // that says "yellow means unsure" next to a backend with no confidence scores is
 // describing a check that never ran.
@@ -253,14 +253,14 @@ const engine = (function () {
       + 'stitched back onto a single clock.';
     $('faq-privacy').textContent =
       `To ${o.name}, and nowhere else. This server keeps the upload only until the `
-      + 'transcript is written, then deletes it — but the copy '
+      + 'transcript is written, then deletes it, but the copy '
       + `${o.name} received is not this server’s to delete. Read their retention `
       + 'policy before sending anything sensitive.';
     $('legend-yellow').innerHTML = o.confidence
-      ? '<span class="swatch yellow"></span><span><strong>Yellow</strong> &mdash; the '
+      ? '<span class="swatch yellow"></span><span><strong>Yellow.</strong> The '
         + 'model scored this word below the confidence threshold. Jump to the timestamp '
         + 'and check it.</span>'
-      : '<span class="swatch yellow"></span><span><strong>Yellow</strong> &mdash; not used '
+      : '<span class="swatch yellow"></span><span><strong>Yellow.</strong> Not used '
         + `on this backend. ${o.repo} reports no per-word confidence, so the document `
         + 'cannot flag words the model was unsure of. Read the whole transcript.</span>';
     $('foot-blurb').textContent =
@@ -275,7 +275,7 @@ const engine = (function () {
   // different privacy answer and a different story about confidence. That does not
   // fit on one line of a <select>.
   //
-  // Rebuilt only when the options themselves change — not on every selection and not
+  // Rebuilt only when the options themselves change, not on every selection and not
   // on every meter tick. Replacing the radio a keyboard user is standing on takes
   // their focus with it, and arrow-keying through the group then stops working.
   let rendered = null, rows = {};
@@ -343,14 +343,14 @@ const engine = (function () {
           ? `${money(wallet.spent)} spent on ${wallet.name} this session`
           : `${money(wallet.remaining)} left · ${money(wallet.spent)} spent this session`;
       $('session-jobs').textContent = wallet.rate === null
-        ? 'billed against your plan — this server cannot read that balance'
+        ? 'billed against your plan; this server cannot read that balance'
         : wallet.jobs
           ? `${wallet.jobs} job(s) at ₹${wallet.rate}/hour of audio, billed from the moment each one starts`
           : `nothing sent yet · ₹${wallet.rate}/hour of audio`;
     }
   }
 
-  // Which backends the server will accept right now — a session key changes that
+  // Which backends the server will accept right now. A session key changes that
   // answer, so this is re-asked rather than read once at load.
   function refresh() {
     const s = store.get();
@@ -369,7 +369,7 @@ const engine = (function () {
 
   // Only while there is a meter to read, and only often while it is actually moving:
   // spend changes when a job runs and at no other time. An idle page with no session
-  // asks nothing at all — that was the request-every-five-seconds in the server log.
+  // asks nothing at all, which was the request-every-five-seconds in the server log.
   let tick = 0;
   setInterval(() => {
     const busy = document.querySelector('.job.active');
@@ -381,7 +381,7 @@ const engine = (function () {
     $('session-err').hidden = true;
     $('api-key').value = '';
     // the form is also shown because the selected backend has no key, and hiding it
-    // would leave nothing on screen — so go back to one that can actually run.
+    // would leave nothing on screen, so go back to one that can actually run.
     const usable = opts.find(o => o.ready);
     if (usable && !(current() || {}).ready) sessionStorage.setItem('asr', usable.id);
     paint();
@@ -473,7 +473,7 @@ const POLL_MS = 2000;
 
 // None of these backends report progress: they take a file and answer when they are
 // done. So the bar is drawn from elapsed time against an estimate, easing toward 95%
-// and never arriving — a bar that hits 100% and sits there reads as a hang. Real
+// and never arriving. A bar that hits 100% and sits there reads as a hang. Real
 // progress, which a split job reports once per finished part, always wins over it.
 // ponytail: one flat rate for every service. Measure per-backend if it ever matters.
 function guess(j, ahead) {
@@ -595,7 +595,7 @@ function send(file) {
     seen.add(id);
     poll(id, li, ui);
   };
-  xhr.onerror = () => fail('Upload failed — is the server still running?');
+  xhr.onerror = () => fail('Upload failed. Is the server still running?');
   const fd = new FormData();
   fd.append('file', file);
   fd.append('asr', asr);
@@ -613,10 +613,10 @@ function stageText(j) {
   const of = part ? ' · ' + part : '';
   if (stage === 'uploading') return `Uploading ${part ? '' : mb(j.size || 0) + ' '}to ${svc}${of}`;
   if (stage === 'waiting') return `Transcribing at ${svc}${of}`;
-  if (stage === 'splitting') return `Too long for one ${svc} job — splitting it up`;
+  if (stage === 'splitting') return `Too long for one ${svc} job, splitting it up`;
   if (stage === 'preparing') return 'Reading the recording';
   if (stage === 'transcribing') return `Transcribing at ${svc}${of}`;
-  if (stage === 'queued') return j.ahead ? `Queued — ${j.ahead} ahead` : 'Starting';
+  if (stage === 'queued') return j.ahead ? `Queued, ${j.ahead} ahead` : 'Starting';
   return 'Working';
 }
 
@@ -636,7 +636,7 @@ function poll(id, li, ui) {
     if (j.status === 'done') {
       ui.at(1);
       ui.msg.textContent = j.elapsed && j.audio
-        ? `Done in ${clock(j.elapsed)} — ${Math.max(1, Math.round(j.audio / j.elapsed))}× faster than listening`
+        ? `Done in ${clock(j.elapsed)}, ${Math.max(1, Math.round(j.audio / j.elapsed))}× faster than listening`
         : 'Done';
       const row = document.createElement('div');
       row.className = 'done-row';
@@ -652,7 +652,7 @@ function poll(id, li, ui) {
       };
       chip('low', j.low_confidence, 'unsure');
       chip('latin', j.latin_script, 'in latin');
-      if (!flags.children.length) flags.textContent = 'Nothing flagged — spot-check it anyway.';
+      if (!flags.children.length) flags.textContent = 'Nothing flagged. Spot-check it anyway.';
       li.appendChild(row);
       return ui.settle();
     }
@@ -664,7 +664,7 @@ function poll(id, li, ui) {
     ui.msg.textContent = stageText(j);
     setTimeout(() => poll(id, li, ui), POLL_MS);
   }).catch(e => e.message === 'gone'
-    ? ui.fail('Lost — the server restarted. Upload it again.')
+    ? ui.fail('Lost. The server restarted, so upload it again.')
     : setTimeout(() => poll(id, li, ui), 5000));
 }
 </script>

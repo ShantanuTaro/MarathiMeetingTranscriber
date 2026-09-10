@@ -2,7 +2,7 @@
 
 Every backend is hosted, so this server holds no weights and downloads nothing at
 startup. What it does hold is a key, in memory, for as long as a tab keeps its
-session — see SESSIONS.
+session. See SESSIONS.
 """
 import os
 import shutil
@@ -46,7 +46,7 @@ BACKENDS = {
 
 # A key the page handed over, good for as long as the tab keeps its session. Memory
 # only: never written to disk, never sent back to the browser, never included in
-# /jobs. One token is one backend — a Sarvam key must never ride to ElevenLabs.
+# /jobs. One token is one backend: a Sarvam key must never ride to ElevenLabs.
 # "spent" is what this session has told that backend to bill.
 SESSIONS = {}
 
@@ -65,7 +65,7 @@ def options(token=None):
 
     Everything is listed whether it has a key or not: the page can take one for the
     session, so an unconfigured backend is a prompt rather than an absence. `ready`
-    is what /upload enforces — listing a backend is not the same as accepting a job.
+    is what /upload enforces; listing a backend is not the same as accepting a job.
     """
     return [{"id": a, "name": b["name"], "repo": core.model_name(a),
              "ready": ready(a, token), "confidence": core.has_confidence(a),
@@ -77,7 +77,7 @@ def options(token=None):
 def verify(asr, key):
     """Prove a key works before any audio moves, and bill nothing doing it.
 
-    Sarvam: create a job and never start it — billing begins at /start, so this is
+    Sarvam: create a job and never start it, since billing begins at /start, so this is
     free. ElevenLabs: read the account. A bad key fails here rather than after an
     hour-long upload.
     """
@@ -189,7 +189,7 @@ def upload(bg: BackgroundTasks, file: UploadFile = File(...),
         raise HTTPException(400, f"unknown backend {asr!r}")
     if not ready(asr, session):
         raise HTTPException(400, f"no {BACKENDS[asr]['name']} key for this session")
-    # the key rides along as a worker argument, never in JOBS — /jobs is served to
+    # the key rides along as a worker argument, never in JOBS, which /jobs serves to
     # the page. A queued job keeps the copy it was handed if the session then ends.
     key = session_key(session, asr)
     job_id = uuid.uuid4().hex
@@ -209,7 +209,7 @@ def upload(bg: BackgroundTasks, file: UploadFile = File(...),
 @app.post("/cancel/{job_id}")
 def cancel(job_id: str):
     """Ask a job to stop. It unwinds at the next poll window, so this returns before
-    the worker has actually noticed — the status poll is what confirms it."""
+    the worker has actually noticed; the status poll is what confirms it."""
     job = JOBS.get(job_id)
     if not job:
         raise HTTPException(404, "unknown job")
@@ -232,7 +232,7 @@ def forget(job_id: str):
 
 @app.post("/jobs/clear")
 def clear():
-    """Clear every finished card. Leaves running jobs alone — stopping work is Stop's
+    """Clear every finished card. Leaves running jobs alone, since stopping work is Stop's
     job, and a Clear that silently killed a running transcription would be a trap."""
     gone = [k for k, v in JOBS.items() if v["status"] in DONE]
     for k in gone:
@@ -243,7 +243,7 @@ def clear():
 
 @app.get("/jobs")
 def jobs():
-    """So a page that just loaded — or reloaded — can find work already running."""
+    """So a page that just loaded, or reloaded, can find work already running."""
     return [{"id": k, **v} for k, v in
             sorted(JOBS.items(), key=lambda kv: kv[1].get("created", 0))]
 
@@ -271,7 +271,7 @@ def open_session(key: str = Form(...), asr: str = Form(...),
                  balance: float = Form(None)):
     """Take a key for this session, after proving it works and before any audio moves.
 
-    `balance` is optional and is only what the user says their dashboard shows —
+    `balance` is optional and is only what the user says their dashboard shows;
     there is no API to read it.
     """
     if asr not in BACKENDS:
@@ -294,7 +294,7 @@ def session_state(token: str):
 @app.delete("/session/{token}")
 def end_session(token: str):
     """End it: the key leaves memory. Jobs already running keep the copy they were
-    handed — killing those is Stop's job, and they are billed either way."""
+    handed; killing those is Stop's job, and they are billed either way."""
     return {"ok": SESSIONS.pop(token, None) is not None}
 
 

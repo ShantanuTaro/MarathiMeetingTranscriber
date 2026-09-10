@@ -157,7 +157,7 @@ def _check_billing():
     assert app.session_key("t", "sarvam") is None
     assert app._wallet("t") is None
     if not os.getenv("SARVAM_API_KEY"):        # a server-side key outlives the session
-        # still listed — the page can take another key — but no longer runnable
+        # still listed (the page can take another key) but no longer runnable
         assert {o["id"]: o["ready"] for o in app.options("t")}["sarvam"] is False
 
 
@@ -198,7 +198,7 @@ def _check_sarvam_split():
 
 def _check_backend_claims():
     """A job picks its own backend, so the document's claims must follow the segments
-    that built it — not whatever ASR the server happened to start with."""
+    that built it, not whatever ASR the server happened to start with."""
     from transcribe import model_name
 
     segs = [S(0.0, 1.0, "meeting", [W(" meeting", 1.0, 0.0)])]

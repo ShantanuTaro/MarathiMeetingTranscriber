@@ -31,7 +31,7 @@ CONF_THRESHOLD = float(os.getenv("CONF_THRESHOLD", "0.60"))
 # face. "Kohinoor Devanagari" is the macOS default; "Nirmala UI" the Windows one.
 DEVANAGARI_FONT = os.getenv("DEVANAGARI_FONT", "ITF Devanagari Marathi")
 LATIN = re.compile(r"[A-Za-z]")
-# SPEAKERS=n if you know how many people were in the room — clustering guesses worse
+# SPEAKERS=n if you know how many people were in the room. Clustering guesses worse
 # than you do. 0 lets the backend decide.
 SPEAKERS = int(os.getenv("SPEAKERS", "0"))
 
@@ -39,7 +39,7 @@ SPEAKERS = int(os.getenv("SPEAKERS", "0"))
 # to be in the environment, because the portal takes one for the session.
 # Sarvam is India-first and the best bet on Marathi, but its batch API returns
 # chunk-level timestamps and NO per-word confidence, so the yellow "unsure" flag
-# cannot exist on this path — _sarvam_segments synthesises words at probability 1.0
+# cannot exist on this path, so _sarvam_segments synthesises words at probability 1.0
 # purely so the Latin-script check, which is a regex over the text, still runs.
 # ElevenLabs Scribe does return a per-word logprob, so yellow means something there.
 BACKENDS = ("sarvam", "elevenlabs")
@@ -48,13 +48,13 @@ SARVAM_MODEL = os.getenv("SARVAM_MODEL", "saaras:v4")
 SARVAM_LANG = os.getenv("SARVAM_LANG", "mr-IN")
 # Diarization is a price tier on Sarvam, not a flag: it takes the rate from Rs30/hour
 # to Rs45/hour, billed per second of audio whether the transcript comes back usable or
-# not. Worth it on a meeting, wasted on a single voice — and it is half the reason a
+# not. Worth it on a meeting, wasted on a single voice, and it is half the reason a
 # Rs100 trial grant disappears inside two hour-long recordings. SPEAKERS only means
 # anything while this is on.
 SARVAM_DIARIZE = os.getenv("SARVAM_DIARIZE", "1") != "0"
 SARVAM_POLL_SEC = float(os.getenv("SARVAM_POLL_SEC", "10"))
 # Vocabulary the model cannot get from the audio: place names, scheme acronyms, the
-# people in the room. A bias list, NOT a prompt — it nudges the decoder's scoring
+# people in the room. A bias list, NOT a prompt: it nudges the decoder's scoring
 # toward these spellings and costs nothing when a term never comes up.
 # Comma-separated, so a term may contain spaces but not a comma.
 KEYTERMS = [t.strip() for t in os.getenv("KEYTERMS", "").split(",") if t.strip()]
@@ -68,7 +68,7 @@ SCRIBE_MODEL = os.getenv("SCRIBE_MODEL", "scribe_v2")
 SCRIBE_LANG = os.getenv("SCRIBE_LANG", "mar")
 
 
-# ASR is only the default now — the server lets a job pick its own backend, so
+# ASR is only the default now, because the server lets a job pick its own backend, so
 # anything that varies by backend has to be asked for one rather than read off a
 # constant fixed at import.
 def model_name(asr=None):
@@ -189,17 +189,17 @@ def _review_table(doc, flagged, threshold, asr=None):
     latin = len(flagged) - low
     conf = (f"{low} below {threshold:.0%} confidence (yellow), "
             if has_confidence(asr) else "")
-    r = p.add_run(f"{len(flagged)} word(s) need a look — {conf}{latin} still in "
+    r = p.add_run(f"{len(flagged)} word(s) need a look: {conf}{latin} still in "
                   f"Latin script (turquoise). Each is highlighted in the transcript.")
     r.font.size, r.font.color.rgb = Pt(9), GREY
     if not has_confidence(asr):
         note = p.add_run(f"  {model_name(asr)} reports no per-word confidence, so this "
-                         "checklist cannot flag words the model was unsure of — "
+                         "checklist cannot flag words the model was unsure of. "
                          "only ones left in Latin script. Read the whole transcript.")
         note.font.size, note.font.color.rgb, note.bold = Pt(9), GREY, True
 
     if not flagged:
-        doc.add_paragraph("Nothing flagged. Spot-check anyway — the model is "
+        doc.add_paragraph("Nothing flagged. Spot-check anyway, since the model is "
                           "sometimes confidently wrong.")
         return
 
@@ -297,7 +297,7 @@ def build_docx(segments, threshold=CONF_THRESHOLD, title="Meeting transcript",
 
     doc = Document()
     _page_setup(doc)
-    _footer(doc, "Draft — verify every highlighted word")
+    _footer(doc, "Draft: verify every highlighted word")
 
     doc.add_heading(title, level=1)
     spoken = sum(seg.end - seg.start for seg in segs)
@@ -327,7 +327,7 @@ def _mime(path):
     Not from the extension: this pipeline's first real recording was raw AAC named
     .mp3, and not from mimetypes either, which calls .m4a "audio/mp4a-latm". ffprobe
     is already a hard dependency and is the only one of the three that cannot be
-    lied to. Getting this wrong is silent — Sarvam decodes the blob by its mime and
+    lied to. Getting this wrong is silent: Sarvam decodes the blob by its mime and
     returns an empty transcript rather than an error.
     """
     fmt = subprocess.run(["ffprobe", "-v", "error", "-show_entries",
@@ -372,7 +372,7 @@ def _sarvam(path, on_progress=None, should_stop=None, key=None, on_billed=None,
             on_stage("splitting")   # re-encoding two hours takes minutes, not seconds
         parts = _split_audio(path, secs, tmp)
         _log(f"sarvam: {ts(secs)} is over the {ts(SARVAM_MAX_SEC)} limit for one "
-             f"file — sending it as {len(parts)} parts")
+             f"file, so sending it as {len(parts)} parts")
         segs, speakers = [], 0
         for i, (part, offset) in enumerate(parts):
             # the stage still names the step; the part rides along after a separator
@@ -400,7 +400,7 @@ def _split_audio(path, secs, into):
     recording splits into two of 1h09m rather than a 2h part and an 18m stub.
 
     Re-encoded to 64k mono AAC rather than stream-copied, which is slower here and
-    much faster where it matters — a 269 MB source becomes about 35 MB to upload, and
+    much faster where it matters: a 269 MB source becomes about 35 MB to upload, and
     one container works for every codec that came in.
 
     ponytail: cuts on the clock, so a word at each seam may be damaged. Cutting on
@@ -431,7 +431,7 @@ def _sarvam_one(path, on_progress=None, should_stop=None, key=None, on_billed=No
     """Sarvam batch: create job -> presigned upload -> start -> poll -> download.
 
     The synchronous /speech-to-text endpoint caps at 30 seconds of audio, which no
-    meeting is, so the job API is the only door — and diarization and timestamps
+    meeting is, so the job API is the only door, and diarization and timestamps
     are batch-only anyway. Audio does not go through Sarvam on the way in: the job
     hands back a presigned Azure blob URL and the bytes go straight there.
 
@@ -467,7 +467,7 @@ def _sarvam_one(path, on_progress=None, should_stop=None, key=None, on_billed=No
         params["keyterms"] = KEYTERMS[:SARVAM_MAX_KEYTERMS]
         if len(KEYTERMS) > SARVAM_MAX_KEYTERMS:
             _log(f"KEYTERMS: sending the first {SARVAM_MAX_KEYTERMS} of "
-                 f"{len(KEYTERMS)} — put the ones the model gets wrong first")
+                 f"{len(KEYTERMS)}. Put the ones the model gets wrong first")
     if SARVAM_LANG:
         params["language_code"] = SARVAM_LANG
     if SPEAKERS and SARVAM_DIARIZE:   # num_speakers is a diarization parameter, and
@@ -496,7 +496,7 @@ def _sarvam_one(path, on_progress=None, should_stop=None, key=None, on_billed=No
         on_stage("waiting")
     if on_billed:
         # the exact moment the meter starts: past here the audio is paid for whatever
-        # happens next — an empty transcript, an error, or Stop.
+        # happens next: an empty transcript, an error, or Stop.
         on_billed(hours * 3600)
 
     while True:
@@ -505,7 +505,7 @@ def _sarvam_one(path, on_progress=None, should_stop=None, key=None, on_billed=No
             # their side and the audio is billed whichever way this process exits. Say
             # so, or the next run looks free and the balance disagrees.
             _log(f"sarvam job {job} stopped here, but it is already running and will "
-                 f"be billed in full — ~Rs{hours * rate:.2f}")
+                 f"be billed in full, ~Rs{hours * rate:.2f}")
             raise Cancelled
         time.sleep(SARVAM_POLL_SEC)   # nothing is ever done on the first check
         st = call("GET", f"{base}/{job}/status").json()
@@ -531,7 +531,7 @@ def _sarvam_one(path, on_progress=None, should_stop=None, key=None, on_billed=No
             f"Sarvam job {job} returned an empty transcript for {name} "
             f"(it decoded the upload as {result.get('audio_mime')}). If that is not "
             f"the real format, remux the file and try again. Sarvam billed this "
-            f"run in full (~Rs{hours * rate:.2f}) — it counts as a Success upstream.")
+            f"run in full (~Rs{hours * rate:.2f}); it counts as a Success upstream.")
     if on_progress:
         on_progress(1.0)
     return segs
@@ -542,7 +542,7 @@ def _sarvam_segments(data):
 
     Two shapes come back: diarized_transcript.entries when with_diarization was
     accepted, else timestamps.{chunks,start_time_seconds,end_time_seconds} as three
-    parallel lists. Prefer the diarized one — it is the same chunking plus a voice.
+    parallel lists. Prefer the diarized one: it is the same chunking plus a voice.
 
     There is no per-word anything here, so each chunk's words are split out and
     their timings linearly interpolated across the chunk. They are approximations
@@ -601,7 +601,7 @@ def _scribe_segments(data):
         spk = w.get("speaker_id")
         words.append(NS(
             word=(pending or " ") + w["text"],
-            # logprob, not a probability — exp() puts it back on CONF_THRESHOLD's scale
+            # logprob, not a probability, so exp() puts it back on CONF_THRESHOLD's scale
             probability=float(math.exp(w.get("logprob", 0.0))),
             start=w["start"], end=w["end"],
             speaker=None if spk is None else ids.setdefault(spk, len(ids))))
@@ -627,7 +627,7 @@ def _scribe_segments(data):
 
 def _scribe(path, on_progress=None, should_stop=None, key=None, on_billed=None,
             on_stage=None):
-    """One POST for the whole file — no chunking, no remapping: the timings come
+    """One POST for the whole file, so no chunking and no remapping: the timings come
     back in the original recording's own clock.
 
     ponytail: blocking request, so progress is 0 then 1. The API exposes no
@@ -662,7 +662,7 @@ def _scribe(path, on_progress=None, should_stop=None, key=None, on_billed=None,
                           headers={"xi-api-key": key}, data=form,
                           files={"file": (os.path.basename(path), f)},
                           # One POST covers upload AND transcription, so the read
-                          # timeout has to outlast the job — but not by an hour. An
+                          # timeout has to outlast the job, but not by an hour. An
                           # hour-long ceiling is how a dead socket became a worker
                           # blocked until the server was restarted.
                           timeout=(30, 1800))
@@ -679,14 +679,14 @@ def transcribe(path, on_progress=None, should_stop=None, asr=None,
     """api_key from the caller wins over the environment: the portal takes one for the
     session, so trying a hosted backend does not mean restarting the server. on_billed
     fires when a paid backend starts charging, which is not when the job succeeds, and
-    on_stage names the step a hosted job is on — it has no progress bar to show."""
+    on_stage names the step a hosted job is on, since it has no progress bar to show."""
     asr = asr or ASR
     if asr == "sarvam":
         segs = _sarvam(path, on_progress, should_stop, api_key, on_billed, on_stage)
     elif asr == "elevenlabs":
         segs = _scribe(path, on_progress, should_stop, api_key, on_billed, on_stage)
     else:
-        raise ValueError(f"unknown ASR backend {asr!r} — try {', '.join(BACKENDS)}")
+        raise ValueError(f"unknown ASR backend {asr!r}. Try {', '.join(BACKENDS)}")
     return build_docx(segs, total_duration=segs[-1].end if segs else None,
                       asr=asr, **kw)
 

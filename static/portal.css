@@ -70,7 +70,7 @@
 }
 
 /* Stop / clear. One control per card: it stops a running job, and removes a
-   finished one — same button, because "stop" and "get this off my screen" are the
+   finished one, same button, because "stop" and "get this off my screen" are the
    same intent at different moments. */
 .job .x { flex-shrink:0; margin-left:4px; width:22px; height:22px; padding:0; line-height:1;
   font-size:16px; border:1px solid transparent; border-radius:var(--r-sm); cursor:pointer;
@@ -89,7 +89,7 @@
 
 /* [hidden] is a UA rule of specificity zero, and every component below sets
    display on a class. Without this, a class rule wins and the element stays on
-   screen with its `hidden` attribute set — which is how "End session" greeted you
+   screen with its `hidden` attribute set, which is how "End session" greeted you
    before you had started one. One line, and every hidden thing here obeys. */
 [hidden] { display:none !important; }
 
