@@ -157,11 +157,23 @@ server carries a guide for each, linked from the key form and from the nav:
 </tr>
 </table>
 
-Each guide carries `HowTo` and `FAQPage` JSON-LD, an `og:` block and a `robots.txt`,
-so it is worth something if this ever goes on a public domain. There is deliberately
-**no `<link rel="canonical">`**: this ships to run on `localhost`, and a canonical
-pointing at a domain the page is not served from is worse than none at all. Add one
-when you know the hostname.
+Each guide carries `HowTo` and `FAQPage` JSON-LD and an `og:` block. Edit them in
+`gen_guides.py` and re-run it; the two pages share a head, a nav and a footer, so the
+chrome lives in one place and the output ships as plain static HTML.
+
+### Deploying it somewhere public
+
+Set `SITE_URL` and the canonical link, the `og:url`, `sitemap.xml` and the `Sitemap:`
+line in `robots.txt` all start working:
+
+```sh
+SITE_URL=https://your-domain.example .venv/bin/uvicorn app:app --port 8000
+```
+
+Leave it unset and none of them are emitted, which is the right answer on `localhost`:
+a canonical pointing at a domain the page is not served from is worse than no
+canonical at all. On Vercel it is read from `VERCEL_PROJECT_PRODUCTION_URL`
+automatically, so preview deployments never claim to be the canonical copy.
 
 ### Reading the progress bar
 
@@ -311,8 +323,10 @@ app.py                        FastAPI portal: jobs, sessions, the queue, the gui
 transcribe.py                 upload -> poll -> segments -> .docx  (also a CLI)
 test_transcribe.py            self-check, no audio and no network
 static/index.html             the whole front end, one file
+gen_guides.py                 writes the two guide pages; edit content here
 static/help-sarvam-api-key.html
 static/help-elevenlabs-api-key.html
+static/terms.html
 static/portal.css             portal components; style.css is the shared design system
 docs/                         full-page screenshots, light and dark
 ```
@@ -320,6 +334,28 @@ docs/                         full-page screenshots, light and dark
 Screenshots are captured headlessly from the real page with sample data; see
 `docs/`. The recording names and figures in them are invented; no meeting content is
 published in this repo.
+
+## Terms, and the disclaimer that goes with them
+
+Served at `/terms`, linked from every page footer. The short version:
+
+- **The output is an unverified machine-generated draft.** Speech recognition makes
+  mistakes and makes them confidently; speaker labels are statistical guesses. Every
+  document now says so on page one, above the transcript, because documents get
+  forwarded and whoever opens it third has no idea a machine wrote it. Do not use one
+  for a legal, regulatory, medical, financial or employment purpose without a human
+  reading and correcting it first.
+- **The software is provided as is, with no warranty and no liability**, including for
+  inaccurate transcripts, decisions taken in reliance on them, and charges incurred at
+  any provider.
+- **Your audio goes to a third party you choose**, under their terms and their
+  retention policy, and you pay them directly with your own key. Charges typically
+  begin when a job starts, not when it succeeds.
+- **You are responsible for having the right to record**, for participant consent under
+  whatever law applies where you are, and for any personal data in the recording.
+
+It is written to be read rather than to be impressive, and it is not legal advice. If
+you are deploying this where strangers will use it, have a lawyer read it.
 
 ## License
 

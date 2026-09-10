@@ -14,10 +14,19 @@ from pathlib import Path
 import requests
 from fastapi import (BackgroundTasks, FastAPI, File, Form, HTTPException,
                      UploadFile)
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import (FileResponse, HTMLResponse, PlainTextResponse,
+                               Response)
 from fastapi.staticfiles import StaticFiles
 
 import transcribe as core
+
+# Where this is actually served from, for canonical links and the sitemap. Absent by
+# default and absent is correct on localhost: a canonical pointing at a domain the
+# page is not served from is worse than no canonical at all. Vercel exports the
+# production hostname itself, so a deploy there needs no configuration.
+SITE_URL = (os.getenv("SITE_URL")
+            or (f"https://{os.environ['VERCEL_PROJECT_PRODUCTION_URL']}"
+                if os.getenv("VERCEL_PROJECT_PRODUCTION_URL") else "")).rstrip("/")
 
 HERE = Path(__file__).parent
 UPLOADS = HERE / "uploads"
@@ -177,9 +186,30 @@ def run_job(job_id, path, name, asr, key=None, token=None):
         path.unlink(missing_ok=True)
 
 
+def serve(name, path):
+    """Read a static page and stamp its canonical URL in.
+
+    Injected at serve time rather than baked in at authoring time, because the same
+    files are opened on localhost, on a preview deploy and on the real domain, and
+    only one of those three should be claiming to be canonical.
+    """
+    html = (HERE / "static" / name).read_text()
+    if not SITE_URL:
+        return html
+    url = SITE_URL + path
+    return html.replace("<!--canonical-->",
+                        f'<link rel="canonical" href="{url}" />\n'
+                        f'  <meta property="og:url" content="{url}" />')
+
+
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return (HERE / "static" / "index.html").read_text()
+    return serve("index.html", "/")
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms():
+    return serve("terms.html", "/terms")
 
 
 # Getting a key is the one step this app cannot do for you, and both providers hide
@@ -192,14 +222,31 @@ def help_page(slug: str):
     # otherwise happily read, and a 404 is the only correct answer to it.
     if not page.resolve().is_file() or page.resolve().parent != (HERE / "static").resolve():
         raise HTTPException(404, "no such guide")
-    return page.read_text()
+    return serve(page.name, f"/help/{slug}")
+
+
+# Every page worth indexing, in the order a reader would meet them.
+PAGES = ("/", "/help/sarvam-api-key", "/help/elevenlabs-api-key", "/terms")
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    """Empty until SITE_URL is known. A sitemap of localhost URLs is worse than none."""
+    urls = "".join(f"<url><loc>{SITE_URL}{p}</loc></url>" for p in PAGES) if SITE_URL else ""
+    return Response(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>',
+        media_type="application/xml")
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
     """Only does anything once this is served from a real domain, but it costs two
     lines and its absence is the kind of thing nobody notices until much later."""
-    return "User-agent: *\nAllow: /\nDisallow: /download/\nDisallow: /status/\n"
+    lines = ["User-agent: *", "Allow: /", "Disallow: /download/", "Disallow: /status/"]
+    if SITE_URL:
+        lines.append(f"Sitemap: {SITE_URL}/sitemap.xml")
+    return "\n".join(lines) + "\n"
 
 
 @app.post("/upload")

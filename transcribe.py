@@ -310,6 +310,14 @@ def build_docx(segments, threshold=CONF_THRESHOLD, title="Meeting transcript",
         ("Speakers", str(len({_spk(s) for s in segs} - {None}) or "not detected")),
         ("Generated", datetime.now().strftime("%d %b %Y, %H:%M")),
     ])
+    # On page one, above everything, because this document leaves here and gets
+    # forwarded, and whoever opens it third has no idea a machine wrote it.
+    note = doc.add_paragraph()
+    warn = note.add_run(
+        "Machine-generated draft. It has not been verified by a human, it is not a "
+        "record of proceedings, and speaker labels are guesses. Check every "
+        "highlighted word, and spot-check the rest, before relying on any of it.")
+    warn.font.size, warn.font.color.rgb, warn.italic = Pt(9), GREY, True
     doc.add_paragraph()
 
     _review_table(doc, flagged, threshold, asr)

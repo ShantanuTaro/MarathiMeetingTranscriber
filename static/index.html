@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!--canonical-->
   <title>Marathi Meeting Transcriber</title>
   <meta name="description" content="Turn Marathi meeting recordings into a Word document, with every uncertain word highlighted and timestamped for review." />
   <link rel="stylesheet" href="/static/fonts.css" />
@@ -185,6 +186,13 @@
         job rather than all of them.</p>
     </details>
     <details>
+      <summary>Can I treat the transcript as a record?</summary>
+      <p>No. It is an unverified machine-generated draft: speech recognition makes
+        mistakes and makes them confidently, and speaker labels are statistical
+        guesses. Read it and correct it before it is used for anything that matters,
+        and see the <a href="/terms">terms and disclaimer</a>.</p>
+    </details>
+    <details>
       <summary>Nothing is highlighted. Is it perfect?</summary>
       <p>Unlikely. On Sarvam nothing is ever highlighted, since it reports no per-word
         confidence, so the check never runs. Elsewhere it means the threshold is set too
@@ -211,11 +219,12 @@
         <span class="label">API keys</span>
         <a href="/help/sarvam-api-key">Get a Sarvam key</a>
         <a href="/help/elevenlabs-api-key">Get an ElevenLabs key</a>
+        <a href="/terms">Terms &amp; disclaimer</a>
       </div>
     </div>
     <div class="foot-base">
       <span id="foot-claim">Your recording is uploaded to the service you pick.</span>
-      <span>A draft for review, not a verbatim record.</span>
+      <span>Provided as is, with no warranty. <a href="/terms">Terms</a>.</span>
     </div>
   </div>
 </footer>
