@@ -283,3 +283,9 @@ static/portal.css    portal components; style.css is the shared design system
 Screenshots are captured headlessly from the real page with sample data — see
 `docs/`. The recording names and figures in them are invented; no meeting content is
 published in this repo.
+
+## License
+
+[MIT](LICENSE). The bundled typefaces are not covered by it and carry their own —
+Inter and IBM Plex Mono are both SIL Open Font License 1.1, included alongside the
+font files in `static/fonts/`.
