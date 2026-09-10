@@ -14,7 +14,7 @@ from pathlib import Path
 import requests
 from fastapi import (BackgroundTasks, FastAPI, File, Form, HTTPException,
                      UploadFile)
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 import transcribe as core
@@ -34,13 +34,16 @@ BACKENDS = {
         "name": "Sarvam", "env": "SARVAM_API_KEY", "rate": core.SARVAM_RATE,
         "note": "India-first, best on Marathi. No per-word confidence, so nothing "
                 "is highlighted as unsure.",
-        "keys": "https://dashboard.sarvam.ai/",
+        # a guide this server serves, not the provider's dashboard. The dashboard is
+        # one click further in, from a page that also says which permission the key
+        # needs, what an hour costs, and how to not spend the free credit on nothing.
+        "keys": "/help/sarvam-api-key",
     },
     "elevenlabs": {
         "name": "ElevenLabs Scribe", "env": "ELEVENLABS_API_KEY", "rate": None,
         "note": "Per-word confidence, so uncertain words are highlighted. Billed "
                 "against your ElevenLabs plan.",
-        "keys": "https://elevenlabs.io/app/settings/api-keys",
+        "keys": "/help/elevenlabs-api-key",
     },
 }
 
@@ -177,6 +180,26 @@ def run_job(job_id, path, name, asr, key=None, token=None):
 @app.get("/", response_class=HTMLResponse)
 def index():
     return (HERE / "static" / "index.html").read_text()
+
+
+# Getting a key is the one step this app cannot do for you, and both providers hide
+# it behind a dashboard tour. These are the tours, written down. Real URLs rather
+# than a query string, because they are meant to be linked to and indexed.
+@app.get("/help/{slug}", response_class=HTMLResponse)
+def help_page(slug: str):
+    page = HERE / "static" / f"help-{slug}.html"
+    # resolve() before the check: "/help/../../etc/passwd" is a path this would
+    # otherwise happily read, and a 404 is the only correct answer to it.
+    if not page.resolve().is_file() or page.resolve().parent != (HERE / "static").resolve():
+        raise HTTPException(404, "no such guide")
+    return page.read_text()
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots():
+    """Only does anything once this is served from a real domain, but it costs two
+    lines and its absence is the kind of thing nobody notices until much later."""
+    return "User-agent: *\nAllow: /\nDisallow: /download/\nDisallow: /status/\n"
 
 
 @app.post("/upload")

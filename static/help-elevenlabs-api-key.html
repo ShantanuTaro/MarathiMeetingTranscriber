@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to get an ElevenLabs API key for Scribe speech-to-text (2026 guide)</title>
+  <meta name="description" content="Create an ElevenLabs API key, enable the Speech to Text permission it needs, and use it to transcribe Marathi with Scribe v2. Steps, the restricted-key trap, and per-word confidence." />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="How to get an ElevenLabs API key for Scribe speech-to-text (2026 guide)" />
+  <meta property="og:description" content="Create an ElevenLabs API key, enable the Speech to Text permission it needs, and use it to transcribe Marathi with Scribe v2. Steps, the restricted-key trap, and per-word confidence." />
+  <link rel="stylesheet" href="/static/fonts.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/portal.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='.7' y2='1'><stop offset='0' stop-color='%2337d7fa'/><stop offset='.4' stop-color='%234b72fe'/><stop offset='.68' stop-color='%23ff8df2'/><stop offset='1' stop-color='%23ff8705'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50' y='72' text-anchor='middle' font-family='system-ui' font-size='58' font-weight='700' fill='%23fff'>म</text></svg>" />
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "HowTo", "name": "How to get an ElevenLabs API key for Scribe speech-to-text (2026 guide)", "description": "Create an ElevenLabs API key, enable the Speech to Text permission it needs, and use it to transcribe Marathi with Scribe v2. Steps, the restricted-key trap, and per-word confidence.", "totalTime": "PT5M", "step": [{"@type": "HowToStep", "position": 1, "name": "Sign in to ElevenLabs", "text": "Sign in or register at elevenlabs.io. A free tier exists; Scribe usage is billed against your plan's credit quota."}, {"@type": "HowToStep", "position": 2, "name": "Open Developers, then API Keys", "text": "Click Developers in the left sidebar and choose the API Keys tab. It can also be reached from My Workspace in the lower left."}, {"@type": "HowToStep", "position": 3, "name": "Create a key and give it a name that means something", "text": "Press Create Key and name it for where it will be used, so that revoking the right one later is obvious."}, {"@type": "HowToStep", "position": 4, "name": "Enable Speech to Text on the key", "text": "This is the step people miss. New keys are restricted by default and grant no product access until you tick it. Enable Speech to Text or every transcription request fails with 401."}, {"@type": "HowToStep", "position": 5, "name": "Set a credit limit while you are there", "text": "Optionally cap how many credits this key may spend. A cap turns a runaway loop into a failed request instead of an invoice."}, {"@type": "HowToStep", "position": 6, "name": "Copy the key, then paste it into the app", "text": "The full key is shown only at creation; afterwards only the last four characters are visible. Copy it, then paste it into the transcriber and press Start session."}]}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why does my new ElevenLabs API key return 401?", "acceptedAnswer": {"@type": "Answer", "text": "Because new keys are restricted by default and grant no product access until you enable it. Open the key in Developers > API Keys and tick Speech to Text. A key without that permission is valid but rejects every transcription request, which is indistinguishable from a wrong key."}}, {"@type": "Question", "name": "What is the header name for ElevenLabs authentication?", "acceptedAnswer": {"@type": "Answer", "text": "xi-api-key. It is not an Authorization header and there is no Bearer prefix."}}, {"@type": "Question", "name": "Can I see an ElevenLabs API key again after creating it?", "acceptedAnswer": {"@type": "Answer", "text": "No. The full value appears only at creation. Afterwards the dashboard shows the key's name and its last four characters. If you lose it, create a new key and delete the old one."}}, {"@type": "Question", "name": "How long a recording can Scribe take?", "acceptedAnswer": {"@type": "Answer", "text": "Up to 3 GB and up to 10 hours per request in standard mode, which is far beyond any normal meeting. Sarvam, by contrast, caps a single file at 2 hours."}}, {"@type": "Question", "name": "How good is Scribe at Marathi?", "acceptedAnswer": {"@type": "Answer", "text": "ElevenLabs rates Marathi in its high-accuracy band, between 5% and 10% word error rate. For code-switched meeting audio it is a reasonable choice, and it is the only option here that reports per-word confidence, so uncertain words can be highlighted for review."}}, {"@type": "Question", "name": "Does Scribe label speakers?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, up to 32 speakers with diarization enabled, and unlike Sarvam it does not charge a different rate for it."}}, {"@type": "Question", "name": "Can I limit what a key is allowed to spend?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Each key can carry its own credit cap, set when you create it or later by editing it. It is the cheapest insurance there is against a loop you did not mean to write."}}]}]</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="mark">म</span> Marathi Meeting Transcriber</a>
+    <nav>
+      <a href="/help/sarvam-api-key">Sarvam key</a>
+      <a href="/help/elevenlabs-api-key">ElevenLabs key</a>
+      <a href="/">Back to the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <article class="guide">
+    <p class="crumb"><a href="/">Marathi Meeting Transcriber</a> &rsaquo; API key guides</p>
+    <h1>How to get an ElevenLabs API key</h1>
+    <p class="lede">ElevenLabs Scribe is the only backend this project supports that returns a <strong>per-word confidence score</strong>, which is what lets a document highlight the words the model was unsure of instead of asking you to re-read the whole hour. Getting a key takes a few minutes, and there is exactly one step people miss.</p>
+
+    <dl class="facts">
+        <div class="fact"><dt>Where</dt><dd><a href="https://elevenlabs.io/app/settings/api-keys" rel="noopener" target="_blank">Developers &rsaquo; API Keys</a></dd></div>
+        <div class="fact"><dt>Docs</dt><dd><a href="https://elevenlabs.io/docs/capabilities/speech-to-text" rel="noopener" target="_blank">elevenlabs.io/docs</a></dd></div>
+        <div class="fact"><dt>Auth header</dt><dd><code>xi-api-key</code></dd></div>
+        <div class="fact"><dt>Model</dt><dd><code>scribe_v2</code></dd></div>
+        <div class="fact"><dt>Per file</dt><dd>up to 3 GB, up to 10 hours</dd></div>
+        <div class="fact"><dt>Marathi</dt><dd>rated high accuracy (5&ndash;10% WER)</dd></div>
+    </dl>
+
+    <h2 id="steps">Six steps, one of which bites</h2>
+    <ol class="gsteps">
+      <li class="gstep">
+        <h3>Sign in to ElevenLabs</h3>
+        <p>Sign in or register at <a href="https://elevenlabs.io/app/sign-in" rel="noopener" target="_blank">elevenlabs.io</a>. There is a free tier. Speech-to-text is billed against your plan&rsquo;s credit quota rather than a per-hour rupee rate, which is why this app&rsquo;s spend meter counts jobs for ElevenLabs instead of inventing a currency figure.</p>
+      </li>
+      <li class="gstep">
+        <h3>Open Developers, then API Keys</h3>
+        <p>Click <strong>Developers</strong> in the left sidebar, then the <strong>API Keys</strong> tab. The same page is reachable from <strong>My Workspace</strong> in the lower left corner, and directly at <a href="https://elevenlabs.io/app/settings/api-keys" rel="noopener" target="_blank">elevenlabs.io/app/settings/api-keys</a>.</p>
+      </li>
+      <li class="gstep">
+        <h3>Create a key and give it a name that means something</h3>
+        <p>Press <strong>+ Create Key</strong>. Name it for where it is going to live , <code>marathi-transcriber-laptop</code> beats <code>key 3</code> on the day you need to revoke exactly one of them.</p>
+      </li>
+      <li class="gstep">
+        <h3>Enable Speech to Text on the key</h3>
+        <p><strong>This is the step people miss.</strong> An ElevenLabs key is <em>restricted by default</em>: it grants access to nothing until you tick the products it may use. Find <strong>Speech to Text</strong> in the permission list and enable it.</p><p>Skip this and the key is real, valid, and completely useless for transcription. Every request comes back 401, which reads exactly like a typo in the key, and you will spend twenty minutes re-copying a key that was never the problem.</p>
+      </li>
+      <li class="gstep">
+        <h3>Set a credit limit while you are there</h3>
+        <p>Optional, and worth the ten seconds: each key can carry its own credit cap. A capped key turns a runaway loop into a failed request rather than an invoice. If the key is going anywhere near a script you are still writing, cap it.</p>
+      </li>
+      <li class="gstep">
+        <h3>Copy the key, then paste it into the app</h3>
+        <p>The full value is shown <strong>only at creation</strong>. Afterwards the list shows the name and the last four characters and nothing else.</p><p>Open <a href="/">the transcriber</a>, pick <strong>ElevenLabs Scribe</strong> under <em>Transcribed by</em>, paste, and press <strong>Start session</strong>. The key is verified against your account before any audio moves, then held in the server&rsquo;s memory for the session only. One session is one provider, so an ElevenLabs key can never be sent to Sarvam.</p>
+      </li>
+    </ol>
+
+    <h2 id="use-it">Use the key</h2>
+    <p>The header name is <code>xi-api-key</code>. Like Sarvam&rsquo;s, it is not an <code>Authorization</code> header and takes no <code>Bearer</code> prefix.</p>
+    <p class="snippet-label">In this app, no shell required</p>
+    <pre class="snippet"><code>Transcribed by  -&gt;  ElevenLabs Scribe  -&gt;  paste key  -&gt;  Start session
+then drop a recording. Nothing is installed and nothing is stored.</code></pre>
+    <p class="snippet-label">From the command line</p>
+    <pre class="snippet"><code>export ELEVENLABS_API_KEY=your_key_here
+export SCRIBE_LANG=mar           # say Marathi; auto-detect can pick English
+ASR=elevenlabs .venv/bin/python transcribe.py meeting.m4a</code></pre>
+    <p class="snippet-label">Straight against the API</p>
+    <pre class="snippet"><code>curl -X POST https://api.elevenlabs.io/v1/speech-to-text \
+  -H &quot;xi-api-key: $ELEVENLABS_API_KEY&quot; \
+  -F model_id=scribe_v2 \
+  -F language_code=mar \
+  -F diarize=true \
+  -F timestamps_granularity=word \
+  -F file=@meeting.m4a
+
+# 401 here with a key you just copied? The key is probably
+# missing the Speech to Text permission. See step 4.</code></pre>
+
+    <h2 id="watch-out">Before you upload</h2>
+    <ul class="watch">
+      <li><strong>A restricted key looks exactly like a wrong key.</strong> If a freshly created key returns 401 on a transcription request, it is almost certainly missing the <em>Speech to Text</em> permission rather than mistyped.</li>
+      <li><strong>Set the language explicitly.</strong> On code-switched Marathi and English audio, auto-detect can settle on English and hand back a translated transcript instead of a Marathi one. <code>language_code=mar</code> costs nothing and removes the coin flip.</li>
+      <li><strong>Keyword biasing bills 20% extra.</strong> Scribe&rsquo;s <code>keyterms</code> field is genuinely useful for village names and scheme acronyms, but the surcharge applies whenever the field is present, whether or not any term is ever matched.</li>
+      <li><strong>Re-tune your confidence threshold.</strong> Scribe returns a logprob, and <code>exp(logprob)</code> is a different distribution from Whisper&rsquo;s probabilities. Carry a threshold over unchanged and you get either every word flagged or none of them. Measure it on one real meeting.</li>
+      <li><strong>One request covers upload and transcription.</strong> There is no progress to poll for, so a long file simply takes as long as it takes. This app draws an estimated bar from elapsed time rather than pretending to know.</li>
+    </ul>
+
+    <h2 id="faq">Questions people actually ask</h2>
+  </article>
+</div>
+
+<section class="band faq guide-faq">
+  <div class="wrap">
+    <details>
+      <summary>Why does my new ElevenLabs API key return 401?</summary>
+      <p>Because new keys are restricted by default and grant no product access until you enable it. Open the key in Developers > API Keys and tick Speech to Text. A key without that permission is valid but rejects every transcription request, which is indistinguishable from a wrong key.</p>
+    </details>
+    <details>
+      <summary>What is the header name for ElevenLabs authentication?</summary>
+      <p>xi-api-key. It is not an Authorization header and there is no Bearer prefix.</p>
+    </details>
+    <details>
+      <summary>Can I see an ElevenLabs API key again after creating it?</summary>
+      <p>No. The full value appears only at creation. Afterwards the dashboard shows the key's name and its last four characters. If you lose it, create a new key and delete the old one.</p>
+    </details>
+    <details>
+      <summary>How long a recording can Scribe take?</summary>
+      <p>Up to 3 GB and up to 10 hours per request in standard mode, which is far beyond any normal meeting. Sarvam, by contrast, caps a single file at 2 hours.</p>
+    </details>
+    <details>
+      <summary>How good is Scribe at Marathi?</summary>
+      <p>ElevenLabs rates Marathi in its high-accuracy band, between 5% and 10% word error rate. For code-switched meeting audio it is a reasonable choice, and it is the only option here that reports per-word confidence, so uncertain words can be highlighted for review.</p>
+    </details>
+    <details>
+      <summary>Does Scribe label speakers?</summary>
+      <p>Yes, up to 32 speakers with diarization enabled, and unlike Sarvam it does not charge a different rate for it.</p>
+    </details>
+    <details>
+      <summary>Can I limit what a key is allowed to spend?</summary>
+      <p>Yes. Each key can carry its own credit cap, set when you create it or later by editing it. It is the cheapest insurance there is against a loop you did not mean to write.</p>
+    </details>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="guide-cta">
+    <div>
+      <strong>Got the key?</strong>
+      <p>Open the app, pick ElevenLabs Scribe, paste it in, and drop a recording.</p>
+    </div>
+    <a class="button" href="/">Transcribe a recording</a>
+  </div>
+  <p class="guide-note">Permissions, limits and dashboard layouts are ElevenLabs&rsquo; to change. Everything here was checked against elevenlabs.io/docs in September 2026; treat the official docs as the authority if the two ever disagree.</p>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-cols">
+      <div>
+        <strong>Marathi Meeting Transcriber</strong>
+        <p>Marathi meeting audio to a reviewable Word document.</p>
+      </div>
+      <div>
+        <span class="label">Guides</span>
+        <a href="/help/sarvam-api-key">Get a Sarvam API key</a>
+        <a href="/help/elevenlabs-api-key">Get an ElevenLabs API key</a>
+      </div>
+      <div>
+        <span class="label">Tool</span>
+        <a href="/">Transcribe a recording</a>
+        <a href="/#how">How it works</a>
+        <a href="/#faq">FAQ</a>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>Your recording is uploaded to the service you pick.</span>
+      <span>A draft for review, not a verbatim record.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

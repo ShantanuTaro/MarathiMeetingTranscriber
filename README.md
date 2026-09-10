@@ -19,6 +19,8 @@ for the session and nowhere else.
 </tr>
 </table>
 
+<sup>Full-page captures. Click either one to read it at full size.</sup>
+
 ---
 
 ## What it does
@@ -35,6 +37,7 @@ for the session and nowhere else.
 | **Speaker labels** | Diarization from whichever backend is running; paragraphs never merge two voices |
 | **Vocabulary hints** | `KEYTERMS` biases the decoder toward village names, scheme acronyms and the people in the room. A bias list, not a prompt |
 | **A real queue** | Drop several files; they run one at a time. Stop one, clear the finished ones, reload the tab and reconnect to work already running |
+| **Key guides built in** | `/help/sarvam-api-key` and `/help/elevenlabs-api-key`: the dashboard tour each provider makes you hunt for, written down, with the pricing and the traps |
 | **No build step** | One HTML file, two stylesheets, no framework, no bundler, no npm |
 
 ## What it costs
@@ -103,8 +106,8 @@ visit looks like:
 
 <table>
 <tr>
-<td width="50%"><img src="docs/session-light.png" alt="The service list with both backends marked needs a key, and the Sarvam key form open below" /></td>
-<td width="50%"><img src="docs/session-dark.png" alt="The same service list and key form in dark mode" /></td>
+<td width="50%"><img src="docs/session-light.png" alt="A first visit in light mode: both backends marked needs a key, with the Sarvam key form open below the list" /></td>
+<td width="50%"><img src="docs/session-dark.png" alt="The same first visit in dark mode" /></td>
 </tr>
 <tr>
 <td align="center"><em>Light</em></td>
@@ -128,6 +131,37 @@ meeting can go to one and the rest to another, in the same queue. The page's cla
 follow the selection: the privacy answer, the *How it works* step and the
 yellow-highlight legend are rewritten from the service you picked, because "yellow
 means the model was unsure" describes a check that never runs on Sarvam.
+
+### Getting a key in the first place
+
+Both providers bury key creation somewhere in a dashboard, and one of them has a
+default that makes a valid key fail in a way that looks exactly like a typo. So the
+server carries a guide for each, linked from the key form and from the nav:
+
+- **`/help/sarvam-api-key`** &nbsp;signup, where the API Keys page is, the
+  `api-subscription-key` header, what the ₹100 free credit actually buys, and the four
+  ways to spend it on nothing.
+- **`/help/elevenlabs-api-key`** &nbsp;the same for Scribe, including the step people
+  miss: **a new ElevenLabs key is restricted by default** and grants no product access
+  until you tick *Speech to Text*. Without it every transcription request returns 401,
+  which is indistinguishable from a wrong key.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/guide-light.png" alt="The Sarvam API key guide page in light mode: numbered steps, code snippets and an FAQ" /></td>
+<td width="50%"><img src="docs/guide-dark.png" alt="The same guide page in dark mode" /></td>
+</tr>
+<tr>
+<td align="center"><em>Light</em></td>
+<td align="center"><em>Dark</em></td>
+</tr>
+</table>
+
+Each guide carries `HowTo` and `FAQPage` JSON-LD, an `og:` block and a `robots.txt`,
+so it is worth something if this ever goes on a public domain. There is deliberately
+**no `<link rel="canonical">`**: this ships to run on `localhost`, and a canonical
+pointing at a domain the page is not served from is worse than none at all. Add one
+when you know the hostname.
 
 ### Reading the progress bar
 
@@ -273,11 +307,14 @@ will get either every word flagged or none.
 ## Layout
 
 ```
-app.py               FastAPI portal: jobs, sessions, the queue
-transcribe.py        upload → poll → segments → .docx  (also a CLI)
-test_transcribe.py   self-check, no audio and no network
-static/index.html    the whole front end, one file
-static/portal.css    portal components; style.css is the shared design system
+app.py                        FastAPI portal: jobs, sessions, the queue, the guides
+transcribe.py                 upload -> poll -> segments -> .docx  (also a CLI)
+test_transcribe.py            self-check, no audio and no network
+static/index.html             the whole front end, one file
+static/help-sarvam-api-key.html
+static/help-elevenlabs-api-key.html
+static/portal.css             portal components; style.css is the shared design system
+docs/                         full-page screenshots, light and dark
 ```
 
 Screenshots are captured headlessly from the real page with sample data; see

@@ -161,3 +161,76 @@
 @media (prefers-reduced-motion:reduce) {
   .job .bar i, .job .bar i.creep { transition:none; }
 }
+
+/* API key guides. Long-form pages that exist to be read and to be found, so the
+   prose gets a measure and the steps get numbers. */
+.guide { max-width:760px; margin:0 auto; padding:56px 0 8px; }
+.guide .crumb { font-family:var(--font-mono); font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-3); margin:0 0 20px; }
+.guide .crumb a { color:var(--ink-3); }
+.guide .crumb a:hover { color:var(--ink); }
+.guide h1 { font-size:clamp(32px, 4.4vw, 46px); font-weight:600; letter-spacing:-.035em;
+  line-height:1.08; margin:0 0 20px; color:var(--ink); }
+.guide .lede { font-size:17px; line-height:1.65; color:var(--ink-2); margin:0 0 36px; }
+.guide h2 { font-size:24px; font-weight:600; letter-spacing:-.025em; color:var(--ink);
+  margin:52px 0 18px; scroll-margin-top:76px; }
+.guide p { font-size:15px; line-height:1.75; color:var(--ink-2); margin:0 0 14px; }
+.guide code { font-family:var(--font-mono); font-size:.88em; padding:2px 6px;
+  border-radius:var(--r-sm); background:var(--bg-alt); color:var(--ink); }
+.guide strong { color:var(--ink); font-weight:600; }
+
+/* At a glance. A definition list, because that is what it is. */
+.facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:1px;
+  margin:0 0 12px; padding:1px; border-radius:var(--r-md); background:var(--line);
+  overflow:hidden; }
+.fact { padding:13px 16px; background:var(--bg); }
+.fact dt { font-family:var(--font-mono); font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; }
+.fact dd { margin:0; font-size:13.5px; line-height:1.5; color:var(--ink); }
+.fact dd code { font-size:12.5px; padding:1px 5px; }
+
+.gsteps { counter-reset:gstep; list-style:none; margin:0; padding:0; }
+.gstep { counter-increment:gstep; position:relative; padding:0 0 26px 54px; }
+.gstep::before { content:counter(gstep); position:absolute; left:0; top:0;
+  display:grid; place-items:center; width:32px; height:32px; border-radius:var(--r-sm);
+  font-family:var(--font-mono); font-size:14px; font-weight:600;
+  background:var(--bg-alt); border:1px solid var(--line); color:var(--ink); }
+/* the rail joins the numbers into one path; the last step has nothing to join to */
+.gstep::after { content:""; position:absolute; left:16px; top:38px; bottom:6px;
+  width:1px; background:var(--line); }
+.gstep:last-child::after { display:none; }
+.gstep h3 { font-size:17px; font-weight:600; letter-spacing:-.02em; color:var(--ink);
+  margin:5px 0 10px; }
+.gstep p:last-child { margin-bottom:0; }
+
+.snippet-label { font-family:var(--font-mono); font-size:10px !important;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
+  margin:22px 0 8px !important; }
+pre.snippet { margin:0; padding:16px 18px; overflow-x:auto; border:1px solid var(--line);
+  border-radius:var(--r-md); background:var(--bg-alt); }
+pre.snippet code { font-family:var(--font-mono); font-size:12.5px; line-height:1.7;
+  padding:0; background:none; color:var(--ink-2); white-space:pre; }
+
+.watch { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.watch li { padding:15px 18px; font-size:14.5px; line-height:1.65; color:var(--ink-2);
+  border:1px solid var(--line); border-left:3px solid var(--orange);
+  border-radius:var(--r-md); background:var(--bg-alt); }
+
+.guide-cta { max-width:760px; margin:0 auto; display:flex; align-items:center; gap:24px;
+  flex-wrap:wrap; padding:26px 28px; border:1px solid var(--line);
+  border-radius:var(--r-lg); background:var(--wash); }
+.guide-cta > div { flex:1; min-width:200px; }
+.guide-cta strong { display:block; font-size:16px; color:var(--ink); margin-bottom:4px; }
+.guide-cta p { margin:0; font-size:14px; line-height:1.6; color:var(--ink-2); }
+.guide-note { max-width:760px; margin:18px auto 64px; font-size:12.5px; line-height:1.6;
+  color:var(--ink-3); }
+
+@media (max-width:48rem) {
+  .guide { padding-top:36px; }
+  .gstep { padding-left:44px; }
+  .guide-cta .button { width:100%; text-align:center; }
+}
+
+/* The FAQ band runs full width like the rest of the site, but its questions belong
+   to the article above it, so they keep the article's measure. */
+.guide-faq details { max-width:760px; margin-left:auto; margin-right:auto; }

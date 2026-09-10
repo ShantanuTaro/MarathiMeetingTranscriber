@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to get a Sarvam AI API key (2026 step-by-step guide)</title>
+  <meta name="description" content="Create a Sarvam AI account, generate an api-subscription-key from the dashboard, and use it for Marathi speech-to-text. Steps, pricing, free credits and the mistakes that cost money." />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="How to get a Sarvam AI API key (2026 step-by-step guide)" />
+  <meta property="og:description" content="Create a Sarvam AI account, generate an api-subscription-key from the dashboard, and use it for Marathi speech-to-text. Steps, pricing, free credits and the mistakes that cost money." />
+  <link rel="stylesheet" href="/static/fonts.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/portal.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='.7' y2='1'><stop offset='0' stop-color='%2337d7fa'/><stop offset='.4' stop-color='%234b72fe'/><stop offset='.68' stop-color='%23ff8df2'/><stop offset='1' stop-color='%23ff8705'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50' y='72' text-anchor='middle' font-family='system-ui' font-size='58' font-weight='700' fill='%23fff'>म</text></svg>" />
+  <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "HowTo", "name": "How to get a Sarvam AI API key (2026 step-by-step guide)", "description": "Create a Sarvam AI account, generate an api-subscription-key from the dashboard, and use it for Marathi speech-to-text. Steps, pricing, free credits and the mistakes that cost money.", "totalTime": "PT5M", "step": [{"@type": "HowToStep", "position": 1, "name": "Create a Sarvam account", "text": "Go to dashboard.sarvam.ai and sign up with email or Google. Verification is normally instant and no payment card is requested."}, {"@type": "HowToStep", "position": 2, "name": "Open the API Keys section", "text": "In the dashboard sidebar, open API Keys. Rate limits are per account, not per key, so extra keys are for separating projects, not for more throughput."}, {"@type": "HowToStep", "position": 3, "name": "Create the key and copy it immediately", "text": "Click to create a new key and copy it at once. The dashboard shows the full key only at creation time; afterwards it cannot be retrieved, only deleted and replaced."}, {"@type": "HowToStep", "position": 4, "name": "Check what you have to spend", "text": "A new account gets Rs100 of credit that never expires. At Rs45 per hour with speaker labels on, that is about two hours and thirteen minutes of diarized audio."}, {"@type": "HowToStep", "position": 5, "name": "Paste it into the app", "text": "Open the transcriber, select Sarvam under Transcribed by, paste the key into the form and press Start session. The key is verified before any audio moves and is held in server memory only."}]}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Do I need a credit card to get a Sarvam API key?", "acceptedAnswer": {"@type": "Answer", "text": "No. Signing up at dashboard.sarvam.ai takes an email address or a Google account, and a new account is credited with Rs100 automatically. A card is only needed when you want to add credit beyond that."}}, {"@type": "Question", "name": "How much Marathi audio does the free credit cover?", "acceptedAnswer": {"@type": "Answer", "text": "About 2 hours 13 minutes with speaker labels on, at Rs45 per hour of audio. With diarization off it is Rs30 per hour, so roughly 3 hours 20 minutes. Billing is per second of audio, not per request."}}, {"@type": "Question", "name": "I lost my API key. Can I see it again?", "acceptedAnswer": {"@type": "Answer", "text": "No. The dashboard shows the full key only at the moment of creation. Delete that key and create a new one; anything using the old key will stop working, which is exactly what you want if you lost it because it leaked."}}, {"@type": "Question", "name": "What is the header name for Sarvam authentication?", "acceptedAnswer": {"@type": "Answer", "text": "api-subscription-key. It is not an Authorization header and there is no Bearer prefix. Sending the right key under the wrong header name returns 401 and looks identical to sending a bad key."}}, {"@type": "Question", "name": "Is my key safe in this app?", "acceptedAnswer": {"@type": "Answer", "text": "It is held in the server's memory for the length of the session and nowhere else: never written to disk, never sent back to the browser, never included in any job or status response, and never handed to a different provider. Ending the session or restarting the server erases it. Closing the tab does not, so use the End session button."}}, {"@type": "Question", "name": "Why is my transcript empty even though the job succeeded?", "acceptedAnswer": {"@type": "Answer", "text": "Almost always a Content-Type that does not match the actual audio container. Sarvam decodes by the declared type, produces nothing usable, and still marks the job successful and bills it. Check the real format with ffprobe rather than trusting the file extension."}}, {"@type": "Question", "name": "Can I send a recording longer than two hours?", "acceptedAnswer": {"@type": "Answer", "text": "Not in one job: Sarvam caps a single file at 2 hours. Split it into parts and stitch the timestamps back together. This app does that automatically, cutting into equal parts and re-encoding them so a 269 MB source uploads as two 34 MB parts."}}]}]</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="mark">म</span> Marathi Meeting Transcriber</a>
+    <nav>
+      <a href="/help/sarvam-api-key">Sarvam key</a>
+      <a href="/help/elevenlabs-api-key">ElevenLabs key</a>
+      <a href="/">Back to the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <article class="guide">
+    <p class="crumb"><a href="/">Marathi Meeting Transcriber</a> &rsaquo; API key guides</p>
+    <h1>How to get a Sarvam AI API key</h1>
+    <p class="lede">Sarvam is an India-first model provider, and <code>saaras:v4</code> is the best Marathi transcription this project has measured. Getting a key takes about five minutes and costs nothing: a new account comes with free credit and no card is asked for. Here is the whole path, plus the three things that quietly spend that credit with nothing to show for it.</p>
+
+    <dl class="facts">
+        <div class="fact"><dt>Dashboard</dt><dd><a href="https://dashboard.sarvam.ai" rel="noopener" target="_blank">dashboard.sarvam.ai</a></dd></div>
+        <div class="fact"><dt>Docs</dt><dd><a href="https://docs.sarvam.ai/api-reference-docs/authentication" rel="noopener" target="_blank">docs.sarvam.ai</a></dd></div>
+        <div class="fact"><dt>Auth header</dt><dd><code>api-subscription-key</code></dd></div>
+        <div class="fact"><dt>Free credit</dt><dd>&#8377;100 on signup, no expiry</dd></div>
+        <div class="fact"><dt>Speech-to-text</dt><dd>&#8377;30 per hour of audio, &#8377;45 with speaker labels</dd></div>
+        <div class="fact"><dt>Card required</dt><dd>No</dd></div>
+    </dl>
+
+    <h2 id="steps">Five steps to a working key</h2>
+    <ol class="gsteps">
+      <li class="gstep">
+        <h3>Create a Sarvam account</h3>
+        <p>Go to <a href="https://dashboard.sarvam.ai" rel="noopener" target="_blank">dashboard.sarvam.ai</a> and sign up with an email address or a Google account. Verification is normally instant. <strong>No payment card is asked for</strong>, which is the point of starting here rather than on a plan.</p>
+      </li>
+      <li class="gstep">
+        <h3>Open the API Keys section</h3>
+        <p>In the dashboard, find <strong>API Keys</strong> in the sidebar. Sarvam moves its dashboard around occasionally, so if the sidebar looks different, look for the words rather than the position.</p><p>Worth knowing before you make several: <em>rate limits are counted per account, not per key</em>. Extra keys separate projects and let you revoke one without killing the others. They do not buy you more throughput.</p>
+      </li>
+      <li class="gstep">
+        <h3>Create the key and copy it immediately</h3>
+        <p>Create a new key. <strong>Copy it before you navigate away.</strong> The dashboard shows the full value exactly once, at creation. There is no &ldquo;show again&rdquo;: if you lose it, the only route is to delete that key and generate another.</p><p>Paste it somewhere safe for a moment. Not into a git repository, not into a chat window, and not into a file you are about to commit.</p>
+      </li>
+      <li class="gstep">
+        <h3>Check what you have to spend</h3>
+        <p>A new account carries <strong>&#8377;100 of credit</strong>, universal across Sarvam&rsquo;s APIs, with no expiry. Speech-to-text is &#8377;30 per hour of audio, or <strong>&#8377;45 per hour with speaker labels on</strong>, billed per second.</p><p>So the free grant is roughly <strong>2h13m of diarized audio</strong>: two hour-long meetings, and not a minute more. That number is worth holding in your head before you upload anything, because it goes faster than it sounds.</p>
+      </li>
+      <li class="gstep">
+        <h3>Paste it into the app</h3>
+        <p>Open <a href="/">the transcriber</a>, pick <strong>Sarvam</strong> under <em>Transcribed by</em>, and the key form opens by itself. Paste the key and press <strong>Start session</strong>.</p><p>The key is checked against Sarvam before any audio moves, by creating a job and never starting it. Sarvam bills nothing until a job starts, so verifying costs zero and a bad key fails immediately rather than after an hour-long upload. It then lives in the server&rsquo;s memory for the session only: never written to disk, never sent back to the page, never included in any status response. <em>End session</em> erases it, and so does restarting the server.</p><p>Optionally type what your dashboard says your credit balance is. There is no API to read it, so the meter can only subtract from a number you supply.</p>
+      </li>
+    </ol>
+
+    <h2 id="use-it">Use the key</h2>
+    <p>The header name is <code>api-subscription-key</code>. Not <code>Authorization</code>, not <code>Bearer</code>: a wrong header name returns 401 and reads exactly like a wrong key.</p>
+    <p class="snippet-label">In this app, no shell required</p>
+    <pre class="snippet"><code>Transcribed by  -&gt;  Sarvam  -&gt;  paste key  -&gt;  Start session
+then drop a recording. Nothing is installed and nothing is stored.</code></pre>
+    <p class="snippet-label">From the command line</p>
+    <pre class="snippet"><code>export SARVAM_API_KEY=your_key_here
+export SARVAM_DIARIZE=0          # single voice? Rs30/hr instead of Rs45
+.venv/bin/python transcribe.py meeting.m4a</code></pre>
+    <p class="snippet-label">Straight against the API</p>
+    <pre class="snippet"><code>curl -X POST https://api.sarvam.ai/speech-to-text/job/v1 \
+  -H &quot;api-subscription-key: $SARVAM_API_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{&quot;job_parameters&quot;: {&quot;model&quot;: &quot;saaras:v4&quot;,
+                          &quot;with_diarization&quot;: true,
+                          &quot;with_timestamps&quot;: true}}&#x27;
+
+# Creating a job is free. Billing starts at /start, not here.</code></pre>
+
+    <h2 id="watch-out">What quietly spends the credit</h2>
+    <ul class="watch">
+      <li><strong>Billing starts when the job starts, not when it succeeds.</strong> A run that comes back empty, errors, or gets stopped is billed in full for the whole duration of the audio. There is no partial charge and no refund.</li>
+      <li><strong>There is no cancel endpoint.</strong> Once a job has started, it runs to completion on Sarvam&rsquo;s side and bills, whatever your end does. Pressing Stop only stops the polling.</li>
+      <li><strong>A wrong Content-Type returns an empty transcript, billed in full.</strong> Sarvam decodes the uploaded blob by its declared mime type. Declare the wrong one and you get a blank transcript with the job marked <em>Success</em>. This app reads the real container with ffprobe rather than trusting the file extension, because the first real recording it ever handled was raw AAC named <code>.mp3</code>.</li>
+      <li><strong>Speaker labels are a price tier, not a switch.</strong> Diarization takes the rate from &#8377;30 to &#8377;45 an hour, a 50% premium. On a single-voice recording it buys nothing. <code>SARVAM_DIARIZE=0</code>, or the equivalent in your own code, is a third off the bill.</li>
+    </ul>
+
+    <h2 id="faq">Questions people actually ask</h2>
+  </article>
+</div>
+
+<section class="band faq guide-faq">
+  <div class="wrap">
+    <details>
+      <summary>Do I need a credit card to get a Sarvam API key?</summary>
+      <p>No. Signing up at dashboard.sarvam.ai takes an email address or a Google account, and a new account is credited with Rs100 automatically. A card is only needed when you want to add credit beyond that.</p>
+    </details>
+    <details>
+      <summary>How much Marathi audio does the free credit cover?</summary>
+      <p>About 2 hours 13 minutes with speaker labels on, at Rs45 per hour of audio. With diarization off it is Rs30 per hour, so roughly 3 hours 20 minutes. Billing is per second of audio, not per request.</p>
+    </details>
+    <details>
+      <summary>I lost my API key. Can I see it again?</summary>
+      <p>No. The dashboard shows the full key only at the moment of creation. Delete that key and create a new one; anything using the old key will stop working, which is exactly what you want if you lost it because it leaked.</p>
+    </details>
+    <details>
+      <summary>What is the header name for Sarvam authentication?</summary>
+      <p>api-subscription-key. It is not an Authorization header and there is no Bearer prefix. Sending the right key under the wrong header name returns 401 and looks identical to sending a bad key.</p>
+    </details>
+    <details>
+      <summary>Is my key safe in this app?</summary>
+      <p>It is held in the server's memory for the length of the session and nowhere else: never written to disk, never sent back to the browser, never included in any job or status response, and never handed to a different provider. Ending the session or restarting the server erases it. Closing the tab does not, so use the End session button.</p>
+    </details>
+    <details>
+      <summary>Why is my transcript empty even though the job succeeded?</summary>
+      <p>Almost always a Content-Type that does not match the actual audio container. Sarvam decodes by the declared type, produces nothing usable, and still marks the job successful and bills it. Check the real format with ffprobe rather than trusting the file extension.</p>
+    </details>
+    <details>
+      <summary>Can I send a recording longer than two hours?</summary>
+      <p>Not in one job: Sarvam caps a single file at 2 hours. Split it into parts and stitch the timestamps back together. This app does that automatically, cutting into equal parts and re-encoding them so a 269 MB source uploads as two 34 MB parts.</p>
+    </details>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="guide-cta">
+    <div>
+      <strong>Got the key?</strong>
+      <p>Open the app, pick Sarvam, paste it in, and drop a recording.</p>
+    </div>
+    <a class="button" href="/">Transcribe a recording</a>
+  </div>
+  <p class="guide-note">Prices, free-credit amounts and dashboard layouts are Sarvam&rsquo;s to change. Everything here was checked against docs.sarvam.ai in September 2026; treat the official docs as the authority if the two ever disagree.</p>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-cols">
+      <div>
+        <strong>Marathi Meeting Transcriber</strong>
+        <p>Marathi meeting audio to a reviewable Word document.</p>
+      </div>
+      <div>
+        <span class="label">Guides</span>
+        <a href="/help/sarvam-api-key">Get a Sarvam API key</a>
+        <a href="/help/elevenlabs-api-key">Get an ElevenLabs API key</a>
+      </div>
+      <div>
+        <span class="label">Tool</span>
+        <a href="/">Transcribe a recording</a>
+        <a href="/#how">How it works</a>
+        <a href="/#faq">FAQ</a>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>Your recording is uploaded to the service you pick.</span>
+      <span>A draft for review, not a verbatim record.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

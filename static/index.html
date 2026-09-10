@@ -16,6 +16,7 @@
   <div class="wrap">
     <a class="brand" href="/"><span class="mark">म</span> Marathi Meeting Transcriber</a>
     <nav>
+      <a href="/help/sarvam-api-key">Get an API key</a>
       <a href="#how">How it works</a>
       <a href="#review">Reading the document</a>
       <a href="#faq">FAQ</a>
@@ -207,9 +208,9 @@
         <a href="#faq">FAQ</a>
       </div>
       <div>
-        <span class="label">Built on</span>
-        <a href="https://docs.sarvam.ai/" rel="noopener" target="_blank">Sarvam AI</a>
-        <a href="https://elevenlabs.io/docs" rel="noopener" target="_blank">ElevenLabs Scribe</a>
+        <span class="label">API keys</span>
+        <a href="/help/sarvam-api-key">Get a Sarvam key</a>
+        <a href="/help/elevenlabs-api-key">Get an ElevenLabs key</a>
       </div>
     </div>
     <div class="foot-base">
@@ -332,7 +333,7 @@ const engine = (function () {
                                                    : 'your ElevenLabs API key';
       $('balance-row').hidden = !o.rate;  // no rupee rate, nothing to subtract from
       $('keys-link').href = o.keys;
-      $('keys-link').textContent = `Get a ${o.name} key ↗`;
+      $('keys-link').textContent = `How to get a ${o.name} key ↗`;
     }
 
     $('session-live').hidden = !wallet;
