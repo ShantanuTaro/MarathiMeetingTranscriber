@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marathi Meeting Transcriber</title>
+  <meta name="description" content="Turn Marathi meeting recordings into a Word document, with every uncertain word highlighted and timestamped for review." />
+  <link rel="stylesheet" href="/static/fonts.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/portal.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='.7' y2='1'><stop offset='0' stop-color='%2337d7fa'/><stop offset='.4' stop-color='%234b72fe'/><stop offset='.68' stop-color='%23ff8df2'/><stop offset='1' stop-color='%23ff8705'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50' y='72' text-anchor='middle' font-family='system-ui' font-size='58' font-weight='700' fill='%23fff'>म</text></svg>" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="mark">म</span> Marathi Meeting Transcriber</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#review">Reading the document</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero hero-grid">
+    <div>
+      <h1>Marathi meetings,<br /><span>in writing.</span></h1>
+      <p>Drop an hour of audio. Get a Word document in Devanagari with every word the
+        model was unsure about highlighted and timestamped, so a human checks the doubts
+        instead of re-listening to the whole recording.</p>
+      <div class="stats">
+        <div id="stat-speed"><span class="n">~15 min</span><span class="l">per hour of audio</span></div>
+        <div><span class="n">Your key</span><span class="l">for this session only</span></div>
+        <div><span class="n">.docx</span><span class="l">ready to edit</span></div>
+      </div>
+    </div>
+
+    <div class="lookup">
+      <span class="label">Transcribed by</span>
+      <ul class="models" id="models"></ul>
+
+      <div class="session" id="session" hidden>
+        <form id="session-form">
+          <label class="label" for="api-key"><span id="key-for">API</span> key
+            &mdash; this session only</label>
+          <input type="password" id="api-key" placeholder="paste it here" autocomplete="off" spellcheck="false" />
+          <div id="balance-row" hidden>
+            <label class="label" for="balance">Credits left, &#8377; &mdash; optional</label>
+            <input type="number" id="balance" placeholder="100" min="0" step="0.01" />
+          </div>
+          <div class="session-row">
+            <button type="submit" class="button" id="session-go">Start session</button>
+            <button type="button" class="link" id="session-cancel">Cancel</button>
+            <a class="session-keys" id="keys-link" rel="noopener" target="_blank">Get a key</a>
+          </div>
+          <p class="session-note">Held in this server&rsquo;s memory until you end the
+            session &mdash; never written to disk, never sent back to this page, never
+            saved anywhere. Closing the tab does not end it; the <em>End session</em>
+            button does.</p>
+          <p class="session-err" id="session-err" hidden></p>
+        </form>
+      </div>
+
+      <div class="session-live" id="session-live" hidden>
+        <span class="dot"></span>
+        <div>
+          <strong id="session-spent"></strong>
+          <span id="session-jobs"></span>
+        </div>
+        <button type="button" class="link" id="session-end">End session</button>
+      </div>
+
+      <label class="label" for="file">Meeting recording</label>
+      <div class="drop" id="drop" tabindex="0" role="button"
+           aria-label="Choose an audio file, or drop or paste one here">
+        <span class="big">Drop a recording here</span>
+        <span class="sub">or click to browse &middot; or press <kbd>&#8984;V</kbd> to paste</span>
+      </div>
+      <input type="file" id="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.aac,.flac,.ogg,.opus,.mp4,.mov,.aiff,.wma" multiple hidden />
+      <div class="jobs-head" id="jobs-head" hidden>
+        <button type="button" class="link" id="clear-done">Clear finished</button>
+      </div>
+      <ul class="jobs" id="jobs"></ul>
+      <div class="formats">
+        <span>Accepts</span>
+        <span class="chip">.m4a</span><span class="chip">.mp3</span><span class="chip">.wav</span>
+        <span class="chip">.aac</span><span class="chip">.flac</span><span class="chip">.ogg</span>
+        <span class="chip">.mp4</span><span class="chip">.mov</span>
+        <span class="hint">anything ffmpeg reads</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="band" id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Pick a service, add a key</h3>
+        <p>Nothing is stored on this server between runs. You paste an API key, it lives
+          in memory for the session, and it is gone the moment you end it.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Upload and transcribe</h3>
+        <p id="how-step2-p">The recording is uploaded and transcribed by the service you
+          picked. Anything longer than its per-file limit is cut into equal parts,
+          sent one at a time and stitched back onto a single clock.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Flag the doubts</h3>
+        <p>Where the service reports per-word confidence, the weak words are highlighted
+          in the document and collected into a review table at the top.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="review">
+  <div class="wrap">
+    <div class="split">
+      <h2>Reading the document</h2>
+      <div>
+        <p class="claim">The transcript is a draft with its uncertainty marked, not a
+          finished record.</p>
+        <p>Every highlighted word also appears in a table at the top of the document with
+          its timestamp and a blank Correction column, so a reviewer works down a checklist
+          rather than reading the whole hour.</p>
+        <ul class="legend">
+          <li id="legend-yellow"><span class="swatch yellow"></span>
+            <span><strong>Yellow</strong> &mdash; the model scored this word below the
+              confidence threshold. Jump to the timestamp and check it.</span></li>
+          <li><span class="swatch turq"></span>
+            <span><strong>Turquoise</strong> &mdash; an English word that came out in Latin
+              script instead of Devanagari. The model decides this per word and is not
+              consistent about it, so these are flagged for a human rather than
+              transliterated automatically.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band faq" id="faq">
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <details>
+      <summary>Where does my recording go?</summary>
+      <p id="faq-privacy">To the transcription service you selected, and nowhere else.
+        This server keeps the upload only until the transcript is written, then deletes
+        it &mdash; but the copy the service received is not this server&rsquo;s to
+        delete. Read their retention policy before sending anything sensitive.</p>
+    </details>
+    <details>
+      <summary>Where is my API key kept?</summary>
+      <p>In this server&rsquo;s memory, for the length of the session. It is never
+        written to disk, never sent back to the page, and never included in any status
+        response. Ending the session &mdash; or restarting the server &mdash; erases it.
+        Closing the tab does not: use the End session button.</p>
+    </details>
+    <details>
+      <summary>Why does the progress bar creep instead of stepping?</summary>
+      <p id="faq-progress">Because none of these services report progress. They accept a
+        file and answer when they are finished. The bar is an estimate from how long the
+        job has been running against the length of the recording &mdash; shown with a
+        &ldquo;~&rdquo; because that is a guess, not a measurement. It eases toward the
+        end and waits there until the transcript actually lands.</p>
+    </details>
+    <details>
+      <summary>What does it cost?</summary>
+      <p>Sarvam bills &#8377;30 per hour of audio, or &#8377;45 with speaker labels on,
+        counted per second from the moment a job starts &mdash; a run that fails or is
+        stopped is billed in full. ElevenLabs bills against your plan&rsquo;s quota. The
+        meter above the drop zone counts what this session has spent.</p>
+    </details>
+    <details>
+      <summary>Can I upload several recordings at once?</summary>
+      <p>Yes. They queue and run one at a time, so a rate limit on your key stops one
+        job rather than all of them.</p>
+    </details>
+    <details>
+      <summary>Nothing is highlighted. Is it perfect?</summary>
+      <p>Unlikely. On Sarvam nothing is ever highlighted &mdash; it reports no per-word
+        confidence, so the check never runs. Elsewhere it means the threshold is set too
+        low for this audio. Treat an empty review table as a reason to spot-check, never
+        as a clean bill of health.</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-cols">
+      <div>
+        <strong>Marathi Meeting Transcriber</strong>
+        <p id="foot-blurb">Marathi meeting audio to a reviewable Word document.</p>
+      </div>
+      <div>
+        <span class="label">Tool</span>
+        <a href="#how">How it works</a>
+        <a href="#review">Reading the document</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div>
+        <span class="label">Built on</span>
+        <a href="https://docs.sarvam.ai/" rel="noopener" target="_blank">Sarvam AI</a>
+        <a href="https://elevenlabs.io/docs" rel="noopener" target="_blank">ElevenLabs Scribe</a>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span id="foot-claim">Your recording is uploaded to the service you pick.</span>
+      <span>A draft for review, not a verbatim record.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const mb = n => n > 1073741824 ? (n / 1073741824).toFixed(1) + ' GB'
+                               : Math.max(1, Math.round(n / 1048576)) + ' MB';
+const money = n => '₹' + Number(n).toFixed(2);
+
+// Which service transcribes, and on whose key. Every backend here is hosted, so the
+// page makes no promise about staying on this machine — what it does vary is the
+// service name and whether that service reports per-word confidence, because a page
+// that says "yellow means unsure" next to a backend with no confidence scores is
+// describing a check that never ran.
+const engine = (function () {
+  const $ = id => document.getElementById(id);
+  const list = $('models'), form = $('session-form');
+  let opts = [], wallet = null;
+
+  // { token, asr } for the one live session. One token is one backend server-side,
+  // so switching service means starting a new session, not carrying the old key over.
+  const store = {
+    get() { try { return JSON.parse(sessionStorage.getItem('asr-session')) || null; }
+            catch (e) { return null; } },
+    set(v) { v ? sessionStorage.setItem('asr-session', JSON.stringify(v))
+               : sessionStorage.removeItem('asr-session'); },
+  };
+  const chosen = () => sessionStorage.getItem('asr') || (opts[0] || {}).id;
+  const current = () => opts.find(o => o.id === chosen());
+
+  function claims(o) {
+    if (!o) return;
+    $('how-step2-p').textContent =
+      `The recording is uploaded to ${o.name} and transcribed there. Anything longer `
+      + 'than its per-file limit is cut into equal parts, sent one at a time and '
+      + 'stitched back onto a single clock.';
+    $('faq-privacy').textContent =
+      `To ${o.name}, and nowhere else. This server keeps the upload only until the `
+      + 'transcript is written, then deletes it — but the copy '
+      + `${o.name} received is not this server’s to delete. Read their retention `
+      + 'policy before sending anything sensitive.';
+    $('legend-yellow').innerHTML = o.confidence
+      ? '<span class="swatch yellow"></span><span><strong>Yellow</strong> &mdash; the '
+        + 'model scored this word below the confidence threshold. Jump to the timestamp '
+        + 'and check it.</span>'
+      : '<span class="swatch yellow"></span><span><strong>Yellow</strong> &mdash; not used '
+        + `on this backend. ${o.repo} reports no per-word confidence, so the document `
+        + 'cannot flag words the model was unsure of. Read the whole transcript.</span>';
+    $('foot-blurb').textContent =
+      `Marathi meeting audio to a reviewable Word document, transcribed by ${o.name}.`;
+    $('foot-claim').textContent = `Uploaded to ${o.name}. A draft for review.`;
+    document.querySelector('meta[name=description]').content =
+      'Turn Marathi meeting recordings into a Word document, with every uncertain word '
+      + `highlighted and timestamped for review. Transcribed by ${o.name}.`;
+  }
+
+  // A list, not a dropdown: there are two of these, each with a different price, a
+  // different privacy answer and a different story about confidence. That does not
+  // fit on one line of a <select>.
+  //
+  // Rebuilt only when the options themselves change — not on every selection and not
+  // on every meter tick. Replacing the radio a keyboard user is standing on takes
+  // their focus with it, and arrow-keying through the group then stops working.
+  let rendered = null, rows = {};
+
+  function render() {
+    const sig = JSON.stringify(opts);
+    if (sig === rendered) return;
+    rendered = sig;
+    list.textContent = '';
+    rows = {};
+    opts.forEach(o => {
+      const li = document.createElement('li');
+      li.innerHTML = `<label class="model-opt">
+          <input type="radio" name="asr" />
+          <span class="model-body">
+            <span class="model-head"><strong></strong><code></code><span class="badge"></span></span>
+            <span class="model-note"></span>
+          </span></label>`;
+      const radio = li.querySelector('input');
+      radio.value = o.id;
+      radio.onchange = () => { sessionStorage.setItem('asr', o.id); paint(); };
+      li.querySelector('strong').textContent = o.name;
+      li.querySelector('code').textContent = o.repo;
+      const badge = li.querySelector('.badge');
+      badge.textContent = o.session ? 'session key'
+        : o.ready ? 'key on server' : 'needs a key';
+      badge.className = 'badge' + (o.ready ? ' on' : '');
+      li.querySelector('.model-note').textContent =
+        o.note + (o.rate ? ` ₹${o.rate} per hour of audio.` : '');
+      rows[o.id] = { radio, box: li.querySelector('.model-opt') };
+      list.appendChild(li);
+    });
+  }
+
+  // The form and the meter are two states of one thing, and only one of them is ever
+  // right: a meter with no session was the bug where "End session" greeted you before
+  // you had started one. Both are driven from here and from nowhere else.
+  let formOpen = false;
+
+  function paint() {
+    const o = current();
+    render();
+    Object.entries(rows).forEach(([id, r]) => {
+      r.radio.checked = id === (o || {}).id;
+      r.box.classList.toggle('picked', id === (o || {}).id);
+    });
+    claims(o);
+
+    const wants = o && !o.ready;          // selected a service with no key anywhere
+    $('session').hidden = !(formOpen || wants);
+    if (formOpen || wants) {
+      $('key-for').textContent = o.name;
+      $('api-key').placeholder = o.id === 'sarvam' ? 'your Sarvam subscription key'
+                                                   : 'your ElevenLabs API key';
+      $('balance-row').hidden = !o.rate;  // no rupee rate, nothing to subtract from
+      $('keys-link').href = o.keys;
+      $('keys-link').textContent = `Get a ${o.name} key ↗`;
+    }
+
+    $('session-live').hidden = !wallet;
+    if (wallet) {
+      $('session-spent').textContent = wallet.rate === null
+        ? `${wallet.name} session running · ${wallet.jobs} job(s) sent`
+        : wallet.remaining === null
+          ? `${money(wallet.spent)} spent on ${wallet.name} this session`
+          : `${money(wallet.remaining)} left · ${money(wallet.spent)} spent this session`;
+      $('session-jobs').textContent = wallet.rate === null
+        ? 'billed against your plan — this server cannot read that balance'
+        : wallet.jobs
+          ? `${wallet.jobs} job(s) at ₹${wallet.rate}/hour of audio, billed from the moment each one starts`
+          : `nothing sent yet · ₹${wallet.rate}/hour of audio`;
+    }
+  }
+
+  // Which backends the server will accept right now — a session key changes that
+  // answer, so this is re-asked rather than read once at load.
+  function refresh() {
+    const s = store.get();
+    return fetch('/backends?session=' + encodeURIComponent(s ? s.token : ''))
+      .then(r => r.json())
+      .then(b => {
+        opts = b.options;
+        // the server forgot this session (restarted, or it was ended elsewhere):
+        // drop the token rather than polling a 404 forever.
+        if (s && !b.wallet) store.set(null);
+        wallet = b.wallet;
+        if (!opts.some(o => o.id === chosen())) sessionStorage.setItem('asr', opts[0].id);
+        paint();
+      });
+  }
+
+  // Only while there is a meter to read, and only often while it is actually moving:
+  // spend changes when a job runs and at no other time. An idle page with no session
+  // asks nothing at all — that was the request-every-five-seconds in the server log.
+  let tick = 0;
+  setInterval(() => {
+    const busy = document.querySelector('.job.active');
+    if (store.get() && ++tick >= (busy ? 1 : 4)) { tick = 0; refresh(); }
+  }, 5000);
+
+  $('session-cancel').onclick = () => {
+    formOpen = false;
+    $('session-err').hidden = true;
+    $('api-key').value = '';
+    // the form is also shown because the selected backend has no key, and hiding it
+    // would leave nothing on screen — so go back to one that can actually run.
+    const usable = opts.find(o => o.ready);
+    if (usable && !(current() || {}).ready) sessionStorage.setItem('asr', usable.id);
+    paint();
+  };
+
+  form.onsubmit = e => {
+    e.preventDefault();
+    const o = current(), err = $('session-err'), go = $('session-go');
+    const key = $('api-key').value.trim();
+    if (!key || !o) return;
+    const fd = new FormData();
+    fd.append('key', key);
+    fd.append('asr', o.id);
+    if (o.rate && $('balance').value) fd.append('balance', $('balance').value);
+    err.hidden = true; go.disabled = true; go.textContent = 'Checking…';
+    // one session at a time: hand back the old key before taking a new one, so a
+    // service you have stopped using is not still holding your credentials.
+    const old = store.get();
+    const drop = old ? fetch('/session/' + old.token, { method: 'DELETE' }).catch(() => {})
+                     : Promise.resolve();
+    drop
+      .then(() => fetch('/session', { method: 'POST', body: fd }))
+      .then(r => r.json().then(b => r.ok ? b : Promise.reject(b.detail || r.status)))
+      .then(b => {
+        store.set({ token: b.token, asr: o.id });
+        $('api-key').value = '';          // the page never needs it again
+        formOpen = false;
+        return refresh();
+      })
+      .catch(m => { err.textContent = m; err.hidden = false; })
+      .then(() => { go.disabled = false; go.textContent = 'Start session'; });
+  };
+
+  $('session-end').onclick = () => {
+    const s = store.get();
+    store.set(null);
+    wallet = null;
+    paint();
+    if (s) fetch('/session/' + s.token, { method: 'DELETE' }).catch(() => {}).then(refresh);
+  };
+
+  return {
+    refresh,
+    asr: () => chosen(),
+    label: () => (current() || {}).name,
+    token: () => (store.get() || {}).token || '',
+    // dropping a file on a backend with no key would be a 400 after the upload, so
+    // the page opens the key form instead. send() calls this before it makes a card.
+    ready() {
+      const o = current();
+      if (o && o.ready) return true;
+      formOpen = true;
+      paint();
+      $('api-key').focus();
+      return false;
+    },
+  };
+})();
+
+engine.refresh();
+
+const drop = document.getElementById('drop');
+const input = document.getElementById('file');
+const jobs = document.getElementById('jobs');
+
+drop.onclick = () => input.click();
+drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } };
+input.onchange = () => { [...input.files].forEach(send); input.value = ''; };
+
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => {
+  e.preventDefault(); drop.classList.remove('over');
+  [...e.dataTransfer.files].forEach(send);
+};
+
+// Paste: a file copied in Finder arrives as clipboardData.files. Chrome delivers it;
+// Safari and Firefox often hand over only a name, so drop and browse stay the real paths.
+document.addEventListener('paste', e => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); files.forEach(send); }
+});
+
+const clock = s => s >= 60
+  ? Math.floor(s / 60) + 'm ' + String(Math.round(s % 60)).padStart(2, '0') + 's'
+  : s.toFixed(1) + 's';
+
+const POLL_MS = 2000;
+
+// None of these backends report progress: they take a file and answer when they are
+// done. So the bar is drawn from elapsed time against an estimate, easing toward 95%
+// and never arriving — a bar that hits 100% and sits there reads as a hang. Real
+// progress, which a split job reports once per finished part, always wins over it.
+// ponytail: one flat rate for every service. Measure per-backend if it ever matters.
+function guess(j, ahead) {
+  const secs = (j.running || 0) + (ahead || 0);
+  if (secs <= 0) return 0;
+  const est = Math.max(45, (j.audio || 900) * 0.2);    // hosted runs ~5x realtime
+  return 0.95 * (1 - Math.exp(-secs / (est / 1.6)));
+}
+
+// Cards the page is already showing, so discovery never duplicates one.
+const seen = new Set();
+
+function makeCard(name, sizeText, first) {
+  const li = document.createElement('li');
+  li.className = 'job active';   // lit until it settles or drops back to queued
+  li.innerHTML = `<div class="job-head"><span class="name"></span><span class="size"></span>
+      <button type="button" class="x" title="Stop and remove">&times;</button></div>
+    <div class="bar"><i></i></div>
+    <div class="stage"><span class="msg">${first}</span><span class="pct"></span></div>`;
+  li.querySelector('.name').textContent = name;
+  li.querySelector('.size').textContent = sizeText;
+  jobs.prepend(li);
+
+  const fill = li.querySelector('.bar i');
+  const msg = li.querySelector('.msg');
+  const pct = li.querySelector('.pct');
+  // Measured progress: snap to it. `to` is where the estimate says the bar will be
+  // by the next poll, so the fill travels there over exactly one poll interval and
+  // the motion is continuous instead of a step every two seconds.
+  const at = (f, to) => {
+    fill.classList.toggle('creep', to !== undefined);
+    fill.style.width = ((to === undefined ? f : to) * 100) + '%';
+    pct.textContent = (to === undefined ? '' : '~') + Math.round(f * 100) + '%';
+  };
+  const x = li.querySelector('.x');
+  const settle = () => {
+    li.classList.add('settled');
+    li.classList.remove('active');
+    x.title = 'Remove';
+    refreshHead();
+  };
+  const fail = text => {
+    li.classList.add('failed'); msg.textContent = text; pct.textContent = ''; settle();
+  };
+  x.onclick = () => {
+    const id = li.dataset.id;
+    if (li.classList.contains('settled') || !id) return removeCard(li, id);
+    // Still working: Stop it, but leave the card so the user sees it stopped rather
+    // than watching a row vanish and wondering whether money is still being spent.
+    x.disabled = true;
+    msg.textContent = 'Stopping…';
+    fetch('/cancel/' + id, { method: 'POST' })
+      .catch(() => {})
+      .then(() => { x.disabled = false; });
+  };
+  return { li, ui: { at, msg, pct, fail, settle } };
+}
+
+// A card whose id the server never learned (the upload itself failed) can only be
+// dropped locally; there is nothing on the server to tell about it.
+function removeCard(li, id) {
+  const done = () => { li.remove(); if (id) seen.delete(id); refreshHead(); };
+  if (!id) return done();
+  fetch('/jobs/' + id, { method: 'DELETE' }).catch(() => {}).then(done);
+}
+
+function refreshHead() {
+  const head = document.getElementById('jobs-head');
+  head.hidden = !jobs.querySelector('.job.settled');
+}
+
+document.getElementById('clear-done').onclick = () => {
+  fetch('/jobs/clear', { method: 'POST' }).catch(() => {}).then(() => {
+    jobs.querySelectorAll('.job.settled').forEach(li => {
+      if (li.dataset.id) seen.delete(li.dataset.id);
+      li.remove();
+    });
+    refreshHead();
+  });
+};
+
+// Jobs live on the server, not in this tab: pick up anything already running,
+// whether this page started it, an earlier page load did, or something else did.
+(function discover() {
+  fetch('/jobs').then(r => r.json()).then(list => {
+    list.forEach(j => {
+      if (seen.has(j.id)) return;
+      seen.add(j.id);
+      const { li, ui } = makeCard(
+        j.name, [j.size && mb(j.size), j.asr].filter(Boolean).join(' · '),
+        'Reconnecting');
+      li.dataset.id = j.id;
+      poll(j.id, li, ui);
+    });
+  }).catch(() => {}).then(() => setTimeout(
+    discover, jobs.querySelector('.job:not(.settled)') ? 5000 : 30000));
+})();
+
+function send(file) {
+  if (!file || !engine.ready()) return;
+  const asr = engine.asr();
+  const { li, ui } = makeCard(
+    file.name, [mb(file.size), engine.label()].filter(Boolean).join(' · '),
+    'Uploading');
+  const { at, msg, fail } = ui;
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/upload');
+  xhr.upload.onprogress = e => { if (e.lengthComputable) at(e.loaded / e.total); };
+  xhr.onload = () => {
+    if (xhr.status !== 200) {
+      let why = 'Upload failed (' + xhr.status + ')';
+      try { why = JSON.parse(xhr.responseText).detail || why; } catch (e) {}
+      return fail(why);
+    }
+    at(0); msg.textContent = 'Queued';
+    const id = JSON.parse(xhr.responseText).job_id;
+    li.dataset.id = id;
+    seen.add(id);
+    poll(id, li, ui);
+  };
+  xhr.onerror = () => fail('Upload failed — is the server still running?');
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('asr', asr);
+  const token = engine.token();
+  if (token) fd.append('session', token);
+  xhr.send(fd);
+}
+
+// A hosted job reports which step it is on, and a file over the backend's length cap
+// goes up in parts with the part riding along after a separator: "uploading · part 2 of 3".
+function stageText(j) {
+  const svc = j.asr === 'sarvam' ? 'Sarvam'
+            : j.asr === 'elevenlabs' ? 'ElevenLabs' : 'the service';
+  const [stage, part] = (j.status || '').split(' · ');
+  const of = part ? ' · ' + part : '';
+  if (stage === 'uploading') return `Uploading ${part ? '' : mb(j.size || 0) + ' '}to ${svc}${of}`;
+  if (stage === 'waiting') return `Transcribing at ${svc}${of}`;
+  if (stage === 'splitting') return `Too long for one ${svc} job — splitting it up`;
+  if (stage === 'preparing') return 'Reading the recording';
+  if (stage === 'transcribing') return `Transcribing at ${svc}${of}`;
+  if (stage === 'queued') return j.ahead ? `Queued — ${j.ahead} ahead` : 'Starting';
+  return 'Working';
+}
+
+function poll(id, li, ui) {
+  fetch('/status/' + id).then(r => {
+    // Jobs live in the server's memory, so a restart forgets them. Say so once
+    // instead of polling a 404 forever.
+    if (r.status === 404) throw new Error('gone');
+    return r.json();
+  }).then(j => {
+    if (j.status === 'error') return ui.fail(j.error);
+    if (j.status === 'cancelled') {
+      ui.at(0); ui.msg.textContent = 'Stopped'; ui.pct.textContent = '';
+      li.classList.add('stopped');
+      return ui.settle();
+    }
+    if (j.status === 'done') {
+      ui.at(1);
+      ui.msg.textContent = j.elapsed && j.audio
+        ? `Done in ${clock(j.elapsed)} — ${Math.max(1, Math.round(j.audio / j.elapsed))}× faster than listening`
+        : 'Done';
+      const row = document.createElement('div');
+      row.className = 'done-row';
+      row.innerHTML = `<div class="flags"></div>
+        <a class="button" href="/download/${id}">Download .docx</a>`;
+      const flags = row.querySelector('.flags');
+      const chip = (cls, n, label) => {
+        if (!n) return;
+        const s = document.createElement('span');
+        s.className = 'flag ' + cls;
+        s.textContent = n + ' ' + label;
+        flags.appendChild(s);
+      };
+      chip('low', j.low_confidence, 'unsure');
+      chip('latin', j.latin_script, 'in latin');
+      if (!flags.children.length) flags.textContent = 'Nothing flagged — spot-check it anyway.';
+      li.appendChild(row);
+      return ui.settle();
+    }
+    // One job runs at a time, so the highlighted card is the one being worked on.
+    li.classList.toggle('active', j.status !== 'queued');
+    if (j.status === 'queued') ui.at(0);
+    else ui.at(Math.max(j.progress || 0, guess(j)),
+               Math.max(j.progress || 0, guess(j, POLL_MS / 1000)));
+    ui.msg.textContent = stageText(j);
+    setTimeout(() => poll(id, li, ui), POLL_MS);
+  }).catch(e => e.message === 'gone'
+    ? ui.fail('Lost — the server restarted. Upload it again.')
+    : setTimeout(() => poll(id, li, ui), 5000));
+}
+</script>
+</body>
+</html>

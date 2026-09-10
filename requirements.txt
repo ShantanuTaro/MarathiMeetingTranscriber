@@ -1,0 +1,8 @@
+python-docx
+fastapi
+uvicorn[standard]
+python-multipart
+requests          # every backend is an HTTP API now; this is the only client
+
+# ffmpeg is still required, on PATH, not from pip: it reads the duration of an
+# upload and cuts anything longer than a backend's per-file cap into parts.

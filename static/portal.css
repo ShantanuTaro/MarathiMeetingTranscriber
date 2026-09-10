@@ -1,0 +1,163 @@
+/* Portal-only components. Everything else is inherited from style.css, which is a
+   verbatim copy of the HS Code Lookup stylesheet - same tokens, same type, same
+   dark-mode swap. Keep it that way so the two projects stay in sync. */
+
+/* Inter and IBM Plex Mono are latin-only subsets, so any Devanagari in the UI
+   would land on an arbitrary browser fallback. Name the fallback ourselves. */
+:root {
+  --font-deva:"Kohinoor Devanagari", "Noto Sans Devanagari", "Nirmala UI",
+              "Devanagari Sangam MN", var(--font);
+}
+.deva { font-family:var(--font-deva); }
+/* The nav mark is a Devanagari letter, and the mono face is a latin-only subset. */
+.brand .mark { font-family:var(--font-deva); font-size:14px; }
+
+/* Drop zone: the whole card is the target, so there is no small rectangle to hit. */
+.drop { display:grid; place-items:center; gap:6px; padding:44px 24px; text-align:center;
+  background:var(--bg-alt); border:1.5px dashed var(--line-strong); border-radius:var(--r-md);
+  cursor:pointer; transition:border-color .15s, background .15s; }
+.drop:hover, .drop:focus-visible { border-color:var(--ink-3); }
+.drop.over { border-color:var(--accent); border-style:solid; background:var(--wash); }
+.drop .big { font-size:16px; font-weight:600; color:var(--ink); letter-spacing:-.02em; }
+.drop .sub { font-size:13px; color:var(--ink-3); }
+.drop kbd { font-family:var(--font-mono); font-size:11px; padding:2px 6px; border-radius:var(--r-sm);
+  border:1px solid var(--line-strong); background:var(--bg); color:var(--ink-2); }
+
+/* Job cards. One per upload, newest on top, each carrying its own progress. */
+.jobs { list-style:none; margin:20px 0 0; padding:0; display:grid; gap:10px; }
+.jobs:empty { margin:0; }
+.job { padding:16px 18px; border:1px solid var(--line); border-radius:var(--r-md); background:var(--bg); }
+.job-head { display:flex; align-items:baseline; gap:12px; }
+.job .name { font-size:14px; font-weight:500; color:var(--ink); min-width:0; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.job .size { margin-left:auto; flex-shrink:0; font-family:var(--font-mono); font-size:11px; color:var(--ink-4); }
+.job .bar { height:4px; margin:12px 0 10px; border-radius:var(--r-pill); background:var(--bg-alt); overflow:hidden; }
+.job .bar i { display:block; width:0; height:100%; border-radius:var(--r-pill);
+  background:var(--spectrum); transition:width .45s ease-out; }
+.job .stage { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); }
+.job .pct { margin-left:auto; font-family:var(--font-mono); font-size:12px; color:var(--ink-3); }
+.job.failed .stage { color:var(--no-ink); }
+.job.failed .bar i { background:var(--spectrum-warn); width:100% !important; }
+.job .done-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;
+  padding-top:14px; border-top:1px solid var(--line); }
+.job .flags { display:flex; gap:6px; flex-wrap:wrap; }
+.job .flag { font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  padding:5px 11px; border-radius:var(--r-pill); }
+.flag.low { background:var(--no-bg); color:var(--no-ink); }
+.flag.latin { background:var(--yes-bg); color:var(--yes-ink); }
+.job .button { margin-left:auto; padding:10px 20px; font-size:13px; }
+
+/* Accepted formats, as the same chips the lookup page uses for examples. */
+.formats { margin-top:18px; padding-top:18px; border-top:1px solid var(--line);
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.formats > span:first-child { font-family:var(--font-mono); font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); margin-right:6px; }
+.formats .chip { cursor:default; }
+.formats .chip:hover { border-color:var(--line-strong); color:var(--ink-2); }
+
+/* The legend mirrors the two highlight colours used inside the .docx. */
+.legend { display:grid; gap:14px; margin:0; padding:0; list-style:none; }
+.legend li { display:flex; gap:12px; align-items:flex-start; font-size:14px; color:var(--ink-2); line-height:1.6; }
+.legend .swatch { flex-shrink:0; width:14px; height:14px; margin-top:4px; border-radius:4px;
+  border:1px solid rgba(0,0,0,.12); }
+.legend .swatch.yellow { background:#ffff00; }
+.legend .swatch.turq { background:#40e0d0; }
+.legend strong { color:var(--ink); font-weight:600; }
+
+@media (max-width:48rem) {
+  .drop { padding:32px 18px; }
+  .job .button { margin-left:0; width:100%; text-align:center; }
+}
+
+/* Stop / clear. One control per card: it stops a running job, and removes a
+   finished one — same button, because "stop" and "get this off my screen" are the
+   same intent at different moments. */
+.job .x { flex-shrink:0; margin-left:4px; width:22px; height:22px; padding:0; line-height:1;
+  font-size:16px; border:1px solid transparent; border-radius:var(--r-sm); cursor:pointer;
+  background:none; color:var(--ink-4); transition:background .15s, color .15s, border-color .15s; }
+.job .x:hover { background:var(--bg-alt); border-color:var(--line-strong); color:var(--ink); }
+.job .x:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.job .x:disabled { opacity:.4; cursor:default; }
+.job.stopped .stage { color:var(--ink-3); }
+.job.stopped .bar i { background:var(--line-strong); width:100% !important; }
+
+.jobs-head { display:flex; justify-content:flex-end; margin:20px 0 -10px; }
+.jobs-head .link { background:none; border:0; padding:4px 2px; cursor:pointer;
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); }
+.jobs-head .link:hover { color:var(--ink); text-decoration:underline; }
+
+/* [hidden] is a UA rule of specificity zero, and every component below sets
+   display on a class. Without this, a class rule wins and the element stays on
+   screen with its `hidden` attribute set — which is how "End session" greeted you
+   before you had started one. One line, and every hidden thing here obeys. */
+[hidden] { display:none !important; }
+
+/* Which service transcribes. A list rather than a <select>: each option carries a
+   price, a privacy answer and whether it flags uncertain words, and none of that
+   fits on one line of a dropdown. */
+.models { list-style:none; margin:0 0 12px; padding:0; display:grid; gap:8px; }
+.model-opt { display:flex; gap:11px; align-items:flex-start; padding:12px 14px; cursor:pointer;
+  border:1px solid var(--line); border-radius:var(--r-md); background:var(--bg-alt);
+  transition:border-color .15s, background .15s; }
+.model-opt:hover { border-color:var(--line-strong); }
+.model-opt.picked { border-color:var(--accent); background:var(--wash); }
+.model-opt input { flex:0 0 auto; margin:2px 0 0; accent-color:var(--accent); }
+.model-body { display:grid; gap:4px; min-width:0; }
+.model-head { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.model-head strong { font-size:14px; font-weight:600; color:var(--ink); }
+.model-head code { font-family:var(--font-mono); font-size:11px; color:var(--ink-4); }
+.model-note { font-size:12px; line-height:1.5; color:var(--ink-3); }
+.badge { font-family:var(--font-mono); font-size:10px; letter-spacing:.08em;
+  text-transform:uppercase; padding:3px 8px; border-radius:var(--r-pill);
+  background:var(--bg); border:1px solid var(--line-strong); color:var(--ink-3); }
+.badge.on { background:var(--yes-bg); border-color:transparent; color:var(--yes-ink); }
+
+/* A key for this session. Held in the server's memory and nowhere else, which is
+   the one claim on this page worth styling like it matters. */
+.session { margin-bottom:12px; }
+#session-form { padding:14px 16px; border:1px solid var(--line);
+  border-radius:var(--r-md); background:var(--bg-alt); }
+#session-form .label { display:block; margin:0 0 6px; }
+#session-form #balance-row { margin-top:12px; }
+#session-form input { width:100%; padding:9px 12px; font:inherit; font-size:13px;
+  color:var(--ink); background:var(--bg); border:1px solid var(--line);
+  border-radius:var(--r-md); }
+#session-form input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.session-row { display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
+.session-row .button { padding:9px 18px; font-size:13px; }
+.session-row .link { background:none; border:0; padding:4px 2px; cursor:pointer;
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-3); }
+.session-row .link:hover { color:var(--ink); text-decoration:underline; }
+.session-keys { margin-left:auto; font-size:12px; color:var(--ink-3); }
+.session-note { margin:12px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); }
+.session-err { margin:10px 0 0; font-size:12px; color:var(--no-ink); }
+
+/* The meter. Orange: this one costs money per second, and only ever appears while a
+   session is actually open. */
+.session-live { display:flex; align-items:center; gap:10px; margin-bottom:12px;
+  padding:9px 12px; border:1px solid var(--orange); border-radius:var(--r-md);
+  font-size:12px; color:var(--ink-3); }
+.session-live .dot { width:7px; height:7px; border-radius:50%; background:var(--orange);
+  flex:0 0 auto; }
+.session-live > div { flex:1; min-width:0; }
+.session-live strong { display:block; color:var(--ink); font-weight:600; font-size:13px; }
+.session-live .link { flex:0 0 auto; background:none; border:0; padding:4px 2px;
+  cursor:pointer; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-3); }
+.session-live .link:hover { color:var(--ink); text-decoration:underline; }
+
+/* The card being worked on. One job runs at a time, so exactly one is lit. */
+.job.active { border-color:var(--accent);
+  box-shadow:0 0 0 1px var(--accent), 0 10px 30px -20px var(--accent); }
+.job.active .name { font-weight:600; }
+
+/* Estimated progress. The fill is sent to where the estimate says it will be by the
+   next poll and takes exactly that long to get there, so it moves continuously
+   instead of stepping every two seconds. */
+.job .bar i.creep { transition:width 2s linear; }
+
+@media (prefers-reduced-motion:reduce) {
+  .job .bar i, .job .bar i.creep { transition:none; }
+}
