@@ -5,3 +5,4 @@ out/*
 models/
 !uploads/.gitkeep
 !out/.gitkeep
+.DS_Store
