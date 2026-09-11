@@ -1,0 +1,18 @@
+# Render blueprint. Push this, then New > Blueprint in the Render dashboard and
+# point it at the repo.
+services:
+  - type: web
+    name: marathi-transcriber
+    runtime: docker
+    plan: free
+    region: singapore          # nearest to Sarvam's India endpoints
+    healthCheckPath: /robots.txt
+    envVars:
+      # Fill this in with the URL Render assigns, or your own domain. Until it is
+      # set there is no canonical link, no og:url and an empty sitemap, which is
+      # the correct behaviour for a host that is not the canonical one.
+      - key: SITE_URL
+        sync: false
+      # Leave the API keys unset. The page takes one for the session, which is the
+      # only sane arrangement on a deployment other people can reach: a key in the
+      # environment is a key every visitor gets to spend.

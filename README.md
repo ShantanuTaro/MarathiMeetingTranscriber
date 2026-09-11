@@ -172,8 +172,10 @@ SITE_URL=https://your-domain.example .venv/bin/uvicorn app:app --port 8000
 
 Leave it unset and none of them are emitted, which is the right answer on `localhost`:
 a canonical pointing at a domain the page is not served from is worse than no
-canonical at all. On Vercel it is read from `VERCEL_PROJECT_PRODUCTION_URL`
-automatically, so preview deployments never claim to be the canonical copy.
+canonical at all.
+
+See [DEPLOY.md](DEPLOY.md) for a host that can actually run this, and for the two
+things that change the moment more than one person can reach it.
 
 ### Reading the progress bar
 

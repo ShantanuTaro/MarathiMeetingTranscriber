@@ -66,6 +66,7 @@ def main():
     _check_sarvam_split()
     _check_backend_claims()
     _check_unknown_backend()
+    _check_isolation()
     _check_billing()
     print("ok")
 
@@ -159,6 +160,43 @@ def _check_billing():
     if not os.getenv("SARVAM_API_KEY"):        # a server-side key outlives the session
         # still listed (the page can take another key) but no longer runnable
         assert {o["id"]: o["ready"] for o in app.options("t")}["sarvam"] is False
+
+
+def _check_isolation():
+    """On one laptop nobody notices. On a shared deployment this is the only thing
+    between a visitor and everybody else's meeting transcripts."""
+    import app
+    from fastapi import HTTPException
+
+    app.JOBS.clear()
+    app.JOBS["a"] = {"status": "done", "client": "alice", "created": 1, "name": "hers.m4a"}
+    app.JOBS["b"] = {"status": "done", "client": "bob", "created": 2, "name": "his.m4a"}
+
+    # each browser sees its own work and only its own
+    assert [j["name"] for j in app.jobs("alice")] == ["hers.m4a"]
+    assert [j["name"] for j in app.jobs("bob")] == ["his.m4a"]
+    assert app.jobs("") == []                     # and a stranger sees nothing
+    # the id never goes back out, so one page cannot learn another's by accident
+    assert "client" not in app.jobs("alice")[0]
+    assert "client" not in app.status("a", "alice")
+
+    for call in (lambda: app.status("a", "bob"),
+                 lambda: app.download("a", "bob"),
+                 lambda: app.cancel("a", "bob"),
+                 lambda: app.forget("a", "bob"),
+                 lambda: app.status("a", "")):
+        try:
+            call()
+        except HTTPException as e:
+            # 404, never 403: a stranger must not be able to confirm an id exists
+            assert e.status_code == 404, e.status_code
+        else:
+            raise AssertionError("another browser's job must not be reachable")
+
+    # Clear finished takes this browser's cards and leaves the rest standing
+    assert app.clear("alice") == {"cleared": 1}
+    assert set(app.JOBS) == {"b"}, app.JOBS
+    app.JOBS.clear()
 
 
 def _check_sarvam_split():

@@ -123,6 +123,21 @@ _lock = threading.Lock()
 DONE = ("done", "error", "cancelled")
 
 
+def mine(job_id, client):
+    """The job, if this browser is the one that uploaded it. Otherwise nothing.
+
+    On one laptop this is a formality. On a public deploy it is the whole of the
+    access control: without it /jobs hands every visitor the filenames of every
+    meeting anybody has transcribed, and /download hands them the transcripts.
+
+    404 rather than 403, so a stranger cannot even confirm that an id exists.
+    """
+    job = JOBS.get(job_id)
+    if job is None or job.get("client", "") != (client or ""):
+        raise HTTPException(404, "unknown job")
+    return job
+
+
 def stopping(job_id):
     """A job the user cancelled, or deleted outright while it was running.
 
@@ -251,7 +266,8 @@ def robots():
 
 @app.post("/upload")
 def upload(bg: BackgroundTasks, file: UploadFile = File(...),
-           asr: str = Form(None), session: str = Form(None)):
+           asr: str = Form(None), session: str = Form(None),
+           client: str = Form("")):
     asr = asr or core.ASR
     # before the file is written, not after: a backend this server has no key for is
     # a 400 the page can show, not an hour-long upload that dies in the worker.
@@ -271,40 +287,39 @@ def upload(bg: BackgroundTasks, file: UploadFile = File(...),
     queued = sum(1 for j in JOBS.values() if j["status"] not in DONE)
     JOBS[job_id] = {"status": "queued", "progress": 0.0, "name": file.filename,
                     "ahead": queued, "size": dst.stat().st_size, "asr": asr,
-                    "created": time.time()}
+                    "created": time.time(), "client": client}
     bg.add_task(run_job, job_id, dst, file.filename, asr, key, session)
     return {"job_id": job_id}
 
 
 @app.post("/cancel/{job_id}")
-def cancel(job_id: str):
+def cancel(job_id: str, client: str = ""):
     """Ask a job to stop. It unwinds at the next poll window, so this returns before
     the worker has actually noticed; the status poll is what confirms it."""
-    job = JOBS.get(job_id)
-    if not job:
-        raise HTTPException(404, "unknown job")
+    job = mine(job_id, client)
     if job["status"] not in DONE:
         job["cancel"] = True
     return {"ok": True}
 
 
 @app.delete("/jobs/{job_id}")
-def forget(job_id: str):
+def forget(job_id: str, client: str = ""):
     """Clear one card. Cancels first if it is still running, so Clear never orphans
     a worker that goes on paying for a transcript nobody is waiting for."""
-    job = JOBS.pop(job_id, None)
-    if not job:
-        raise HTTPException(404, "unknown job")
+    job = mine(job_id, client)
+    JOBS.pop(job_id, None)
     job["cancel"] = True              # run_job reads JOBS.get(...) -> gone -> stop
     (OUT / f"{job_id}.docx").unlink(missing_ok=True)
     return {"ok": True}
 
 
 @app.post("/jobs/clear")
-def clear():
-    """Clear every finished card. Leaves running jobs alone, since stopping work is Stop's
-    job, and a Clear that silently killed a running transcription would be a trap."""
-    gone = [k for k, v in JOBS.items() if v["status"] in DONE]
+def clear(client: str = ""):
+    """Clear every finished card of this browser's. Leaves running jobs alone, since
+    stopping work is Stop's job, and a Clear that silently killed a running
+    transcription would be a trap."""
+    gone = [k for k, v in JOBS.items()
+            if v["status"] in DONE and v.get("client", "") == client]
     for k in gone:
         JOBS.pop(k, None)
         (OUT / f"{k}.docx").unlink(missing_ok=True)
@@ -312,10 +327,15 @@ def clear():
 
 
 @app.get("/jobs")
-def jobs():
-    """So a page that just loaded, or reloaded, can find work already running."""
-    return [{"id": k, **v} for k, v in
-            sorted(JOBS.items(), key=lambda kv: kv[1].get("created", 0))]
+def jobs(client: str = ""):
+    """So a page that just loaded, or reloaded, can find work already running.
+
+    This browser's work. The client id never goes back out, so one page cannot learn
+    another's even by accident.
+    """
+    return [{"id": k, **{f: v for f, v in j.items() if f != "client"}}
+            for k, j in sorted(JOBS.items(), key=lambda kv: kv[1].get("created", 0))
+            if j.get("client", "") == client]
 
 
 @app.get("/backends")
@@ -369,21 +389,20 @@ def end_session(token: str):
 
 
 @app.get("/status/{job_id}")
-def status(job_id: str):
-    job = JOBS.get(job_id)
-    if job is None:
-        raise HTTPException(404, "unknown job")
+def status(job_id: str, client: str = ""):
+    job = mine(job_id, client)
     # How long this job has actually been working, measured here. The page draws its
     # estimated progress from this, and a clock it computed itself would be wrong by
     # however far the browser's clock has drifted from the server's.
     began = job.get("began")
-    return {**job, "running": round(time.time() - began, 1) if began else 0.0}
+    return {**{f: v for f, v in job.items() if f != "client"},
+            "running": round(time.time() - began, 1) if began else 0.0}
 
 
 @app.get("/download/{job_id}")
-def download(job_id: str):
-    job = JOBS.get(job_id)
-    if not job or job["status"] != "done":
+def download(job_id: str, client: str = ""):
+    job = mine(job_id, client)
+    if job["status"] != "done":
         raise HTTPException(404, "not ready")
     return FileResponse(
         OUT / f"{job_id}.docx", filename=job["filename"],

@@ -230,6 +230,24 @@
 </footer>
 
 <script>
+// Who this browser is, as far as the server is concerned. localStorage rather than
+// sessionStorage so a reload still finds the jobs it started. It is not a secret and
+// not a login: it is what stops a shared deployment showing one visitor another
+// visitor's meeting filenames and handing over their transcripts.
+const CLIENT = (() => {
+  try {
+    let id = localStorage.getItem('client');
+    if (!id) localStorage.setItem('client', id = crypto.randomUUID());
+    return id;
+  } catch (e) {
+    // private mode, or storage blocked. A per-tab id still isolates this visitor
+    // from every other one; it just forgets its jobs on reload.
+    return crypto.randomUUID();
+  }
+})();
+const q = (path, extra) => path + (path.includes('?') ? '&' : '?')
+  + 'client=' + encodeURIComponent(CLIENT) + (extra || '');
+
 const mb = n => n > 1073741824 ? (n / 1073741824).toFixed(1) + ' GB'
                                : Math.max(1, Math.round(n / 1048576)) + ' MB';
 const money = n => '₹' + Number(n).toFixed(2);
@@ -535,7 +553,7 @@ function makeCard(name, sizeText, first) {
     // than watching a row vanish and wondering whether money is still being spent.
     x.disabled = true;
     msg.textContent = 'Stopping…';
-    fetch('/cancel/' + id, { method: 'POST' })
+    fetch(q('/cancel/' + id), { method: 'POST' })
       .catch(() => {})
       .then(() => { x.disabled = false; });
   };
@@ -547,7 +565,7 @@ function makeCard(name, sizeText, first) {
 function removeCard(li, id) {
   const done = () => { li.remove(); if (id) seen.delete(id); refreshHead(); };
   if (!id) return done();
-  fetch('/jobs/' + id, { method: 'DELETE' }).catch(() => {}).then(done);
+  fetch(q('/jobs/' + id), { method: 'DELETE' }).catch(() => {}).then(done);
 }
 
 function refreshHead() {
@@ -556,7 +574,7 @@ function refreshHead() {
 }
 
 document.getElementById('clear-done').onclick = () => {
-  fetch('/jobs/clear', { method: 'POST' }).catch(() => {}).then(() => {
+  fetch(q('/jobs/clear'), { method: 'POST' }).catch(() => {}).then(() => {
     jobs.querySelectorAll('.job.settled').forEach(li => {
       if (li.dataset.id) seen.delete(li.dataset.id);
       li.remove();
@@ -568,7 +586,7 @@ document.getElementById('clear-done').onclick = () => {
 // Jobs live on the server, not in this tab: pick up anything already running,
 // whether this page started it, an earlier page load did, or something else did.
 (function discover() {
-  fetch('/jobs').then(r => r.json()).then(list => {
+  fetch(q('/jobs')).then(r => r.json()).then(list => {
     list.forEach(j => {
       if (seen.has(j.id)) return;
       seen.add(j.id);
@@ -609,6 +627,7 @@ function send(file) {
   const fd = new FormData();
   fd.append('file', file);
   fd.append('asr', asr);
+  fd.append('client', CLIENT);
   const token = engine.token();
   if (token) fd.append('session', token);
   xhr.send(fd);
@@ -631,7 +650,7 @@ function stageText(j) {
 }
 
 function poll(id, li, ui) {
-  fetch('/status/' + id).then(r => {
+  fetch(q('/status/' + id)).then(r => {
     // Jobs live in the server's memory, so a restart forgets them. Say so once
     // instead of polling a 404 forever.
     if (r.status === 404) throw new Error('gone');
@@ -651,7 +670,7 @@ function poll(id, li, ui) {
       const row = document.createElement('div');
       row.className = 'done-row';
       row.innerHTML = `<div class="flags"></div>
-        <a class="button" href="/download/${id}">Download .docx</a>`;
+        <a class="button" href="${q(`/download/${id}`)}">Download .docx</a>`;
       const flags = row.querySelector('.flags');
       const chip = (cls, n, label) => {
         if (!n) return;
