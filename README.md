@@ -9,15 +9,22 @@ Drop a file in the browser, get a `.docx`. Bring your own API key; it lives in m
 for the session and nowhere else.
 
 <table>
-<tr>
-<td width="50%"><img src="docs/portal-light.png" alt="The portal in light mode: a service picker, a spend meter, one job transcribing and one finished with a download button" /></td>
-<td width="50%"><img src="docs/portal-dark.png" alt="The same portal in dark mode" /></td>
-</tr>
-<tr>
-<td align="center"><em>Light</em></td>
-<td align="center"><em>Dark</em></td>
-</tr>
+  <!-- Light Mode Row -->
+  <tr>
+    <td>
+      <img src="docs/portal-light.png" width="100%" alt="The portal in light mode: a service picker, a spend meter, one job transcribing and one finished with a download button" />
+      <p align="center"><em>Light</em></p>
+    </td>
+  </tr>
+  <!-- Dark Mode Row -->
+  <tr>
+    <td>
+      <img src="docs/portal-dark.png" width="100%" alt="The same portal in dark mode" />
+      <p align="center"><em>Dark</em></p>
+    </td>
+  </tr>
 </table>
+
 
 <sup>Full-page captures. Click either one to read it at full size.</sup>
 
