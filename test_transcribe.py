@@ -67,6 +67,7 @@ def main():
     _check_backend_claims()
     _check_unknown_backend()
     _check_isolation()
+    _check_expiry()
     _check_billing()
     print("ok")
 
@@ -196,6 +197,37 @@ def _check_isolation():
     # Clear finished takes this browser's cards and leaves the rest standing
     assert app.clear("alice") == {"cleared": 1}
     assert set(app.JOBS) == {"b"}, app.JOBS
+    app.JOBS.clear()
+
+
+def _check_expiry():
+    """The countdown on the card has to be telling the truth: when it reaches zero
+    the file is gone and the download is refused, not merely hidden."""
+    import time
+    from pathlib import Path
+    import app
+    from fastapi import HTTPException
+
+    app.JOBS.clear()
+    doc = app.OUT / "exp.docx"
+    doc.write_bytes(b"not really a docx")
+    app.JOBS["exp"] = {"status": "done", "client": "c", "created": 1, "filename": "a.docx",
+                       "expires": time.time() + 30}
+
+    assert app.status("exp", "c")["expires_in"] in range(29, 31)
+    assert Path(app.download("exp", "c").path) == doc     # inside the window, fine
+
+    app.JOBS["exp"]["expires"] = time.time() - 1          # window closes
+    try:
+        app.download("exp", "c")
+    except HTTPException as e:
+        assert e.status_code == 404 and e.detail == "expired", (e.status_code, e.detail)
+    else:
+        raise AssertionError("an expired document must not still be downloadable")
+    assert not doc.exists(), "the file itself has to go, not just the link"
+    assert app.JOBS["exp"]["status"] == "expired"
+    # and the card says so rather than going quiet
+    assert app.jobs("c")[0]["status"] == "expired"
     app.JOBS.clear()
 
 

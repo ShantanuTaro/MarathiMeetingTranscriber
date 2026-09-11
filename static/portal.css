@@ -234,3 +234,11 @@ pre.snippet code { font-family:var(--font-mono); font-size:12.5px; line-height:1
 /* The FAQ band runs full width like the rest of the site, but its questions belong
    to the article above it, so they keep the article's measure. */
 .guide-faq details { max-width:760px; margin-left:auto; margin-right:auto; }
+
+/* The download window. Sits with the flag chips, counts down, and turns into a
+   plain statement of fact when it runs out. */
+.job .expiry { font-family:var(--font-mono); font-size:11px; letter-spacing:.04em;
+  padding:5px 11px; border-radius:var(--r-pill); background:var(--no-bg);
+  color:var(--no-ink); }
+.job .expiry.gone { background:none; padding-left:0; color:var(--ink-3);
+  letter-spacing:0; font-family:var(--font); font-size:12.5px; }

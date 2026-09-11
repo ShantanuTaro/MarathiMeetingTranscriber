@@ -30,7 +30,9 @@ for the session and nowhere else.
 | **Two hosted backends** | Sarvam (`saaras:v4`) and ElevenLabs Scribe (`scribe_v2`), picked per upload from a list, not a dropdown, because each one has a different price, a different privacy answer and a different story about confidence |
 | **Bring your own key** | Paste a key on the page. It is verified against the service before any audio moves, then held in server memory for the session: never written to disk, never sent back to the page, never in any status response |
 | **Spend meter** | ₹ spent this session, charged the instant the backend starts a job, not when it succeeds, because a run that comes back empty or gets stopped is billed just the same |
-| **Auto-split over the cap** | Sarvam takes 2 hours per file. Longer recordings are cut into equal parts, re-encoded, sent one at a time and stitched back onto a single clock. 269 MB becomes 34 MB twice |
+| **Every upload is re-encoded** | 64k mono AAC before it goes anywhere. A 269 MB source leaves as 34 MB, an 82 MB one as 25 MB: less to upload, less held in memory while uploading, and one container whatever codec came in |
+| **Auto-split over the cap** | Sarvam takes 2 hours per file. Longer recordings are cut into equal parts, sent one at a time and stitched back onto a single clock |
+| **Documents expire** | Thirty minutes from ready, counting down on the card, then deleted. A transcript is somebody's meeting; holding it longer than it takes to collect is a liability, not a feature |
 | **Estimated progress** | None of these services report progress. The bar is drawn from elapsed time against the length of the recording, shown as `~43%` because it is a guess |
 | **Review checklist** | Every flagged word gets a numbered row: timestamp, what was heard, why it is flagged, and a blank Correction column, on its own page, before the transcript |
 | **Two kinds of doubt** | Yellow for low confidence, turquoise for an English word left in Latin script instead of Devanagari |
@@ -177,6 +179,18 @@ canonical at all.
 See [DEPLOY.md](DEPLOY.md) for a host that can actually run this, and for the two
 things that change the moment more than one person can reach it.
 
+### The download window
+
+A finished document is kept for thirty minutes and then deleted. The card counts down
+to it, and when it reaches zero the file is gone from disk, the Download button is
+removed and `/download` answers 404 rather than pretending. `DOC_TTL_SEC` changes the
+window.
+
+This is not storage. Nothing is backed up, a restart erases everything immediately,
+and on a host with no persistent disk the alternative to a countdown is a Download
+button that has quietly meant nothing for twenty minutes. Collect the document and
+close the tab.
+
 ### Reading the progress bar
 
 None of these services report progress: they take a file and answer when they are
@@ -197,6 +211,23 @@ on its card. **Stopping a job does not stop the backend from billing it.**
 export SARVAM_API_KEY=sk_...
 .venv/bin/python transcribe.py meeting.m4a
 ```
+
+## What happens to a recording
+
+1. **`_mime()`** reads the real container with ffprobe rather than trusting the
+   extension, because getting it wrong is silent and billed (see above).
+2. **`_encode()`** re-encodes to 64k mono AAC. Every upload, not only the ones over a
+   length cap: speech at 64k mono is indistinguishable to a recogniser from the 256k
+   stereo it usually arrives as, and the size is the point. 269 MB becomes 34 MB, 82 MB
+   becomes 25 MB. Less to upload, less held in memory while uploading, one container
+   for every codec that came in. It costs a decode pass, which on a throttled host is
+   minutes for an hour of audio, and is worth it there precisely because the upload is
+   the slow part.
+3. **Anything over the backend's cap** comes out of that step as several parts, stitched
+   back onto one clock afterwards (see *Files over two hours*).
+4. **Upload, poll, download.** The transcript comes back as segments with timings, the
+   same shape whichever backend produced it, and `build_docx` turns those into the
+   document below.
 
 ## The document
 
@@ -236,6 +267,7 @@ Two highlights, and they mean different things:
 | `CONF_THRESHOLD` | `0.60` | higher = more words flagged. No-op on Sarvam, which reports no confidence |
 | `DEVANAGARI_FONT` | `ITF Devanagari Marathi` | `Kohinoor Devanagari` is the macOS default face; `Nirmala UI` on Windows |
 | `SPEAKERS` | `0` | how many people were in the room, if you know. Clustering guesses worse than you do |
+| `DOC_TTL_SEC` | `1800` | how long a finished `.docx` stays downloadable before it is deleted. The card counts down to it |
 | `KEYTERMS` | *(empty)* | comma-separated vocabulary hints, see below |
 | `SARVAM_API_KEY` | *(none)* | optional; the page can take one for the session instead |
 | `SARVAM_MODEL` | `saaras:v4` | `saarika:v2.5` is deprecated upstream |

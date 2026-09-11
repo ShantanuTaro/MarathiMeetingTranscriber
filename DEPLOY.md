@@ -38,15 +38,14 @@ What the free plan gives, and what it costs you:
 - **750 instance hours per month per workspace**, which covers one service.
 - **No persistent disk.** Finished `.docx` files live in the container filesystem and
   are lost on redeploy, restart or spin-down. Jobs are in memory anyway, so this is
-  consistent rather than surprising: the page says the server restarted and asks you
-  to upload again. **Download the document when it is ready.**
+  consistent rather than surprising. The card counts down the thirty minutes a
+  document is kept (`DOC_TTL_SEC`) and a restart takes it sooner than that, so
+  **download it when it is ready.**
 
-The RAM caveat: the upload to Sarvam's blob storage reads the file into memory in one
-piece. Anything over the two-hour cap is split and re-encoded to 64k mono AAC first, so
-those parts are about 34 MB each and harmless. A single file just under two hours is
-not split, and a 120 MB mp3 becomes roughly 250 MB of peak memory on a 512 MB box.
-Re-encoding every upload rather than only the oversized ones would fix it and make
-uploads faster; it is not done today.
+512 MB is enough because every upload is re-encoded to 64k mono AAC before it is sent:
+the largest thing held in memory is one compressed part, about 34 MB, not the original
+file. The trade on 0.1 CPU is that encoding an hour of audio takes minutes, which is
+time the slower upload would have cost anyway.
 
 ### Other hosts
 

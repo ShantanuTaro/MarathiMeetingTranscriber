@@ -24,6 +24,13 @@ import transcribe as core
 # default and absent is correct on localhost: a canonical pointing at a domain the
 # page is not served from is worse than no canonical at all. Vercel exports the
 # production hostname itself, so a deploy there needs no configuration.
+# How long a finished document stays downloadable. It is deleted after this, and the
+# card counts down to it, because on a host with no persistent disk the alternative
+# is a Download button that has quietly meant nothing for the last twenty minutes.
+# Transcripts are somebody's meeting: holding them longer than it takes to collect
+# them is a liability, not a feature.
+DOC_TTL_SEC = int(os.getenv("DOC_TTL_SEC", "1800"))
+
 SITE_URL = (os.getenv("SITE_URL")
             or (f"https://{os.environ['VERCEL_PROJECT_PRODUCTION_URL']}"
                 if os.getenv("VERCEL_PROJECT_PRODUCTION_URL") else "")).rstrip("/")
@@ -123,6 +130,18 @@ _lock = threading.Lock()
 DONE = ("done", "error", "cancelled")
 
 
+def sweep():
+    """Delete documents past their window, and say so on the card rather than leaving
+    a Download button that 404s. Called from the polls the page already makes, so
+    there is no timer to own; a document nobody asks about lingers until someone does,
+    or until the process restarts, whichever comes first."""
+    now = time.time()
+    for k, j in JOBS.items():
+        if j["status"] == "done" and j.get("expires", now + 1) <= now:
+            (OUT / f"{k}.docx").unlink(missing_ok=True)
+            j["status"] = "expired"
+
+
 def mine(job_id, client):
     """The job, if this browser is the one that uploaded it. Otherwise nothing.
 
@@ -188,6 +207,7 @@ def run_job(job_id, path, name, asr, key=None, token=None):
             doc.save(dst)
             latin = sum(1 for *_, reason in flagged if reason == "Latin script")
             job.update(status="done", progress=1.0, filename=Path(name).stem + ".docx",
+                       expires=time.time() + DOC_TTL_SEC,
                        flagged=len(flagged), latin_script=latin,
                        elapsed=round(time.monotonic() - began, 1),
                        low_confidence=len(flagged) - latin)
@@ -333,6 +353,7 @@ def jobs(client: str = ""):
     This browser's work. The client id never goes back out, so one page cannot learn
     another's even by accident.
     """
+    sweep()
     return [{"id": k, **{f: v for f, v in j.items() if f != "client"}}
             for k, j in sorted(JOBS.items(), key=lambda kv: kv[1].get("created", 0))
             if j.get("client", "") == client]
@@ -394,16 +415,26 @@ def status(job_id: str, client: str = ""):
     # How long this job has actually been working, measured here. The page draws its
     # estimated progress from this, and a clock it computed itself would be wrong by
     # however far the browser's clock has drifted from the server's.
+    sweep()
     began = job.get("began")
+    left = job.get("expires", 0) - time.time()
     return {**{f: v for f, v in job.items() if f != "client"},
-            "running": round(time.time() - began, 1) if began else 0.0}
+            "running": round(time.time() - began, 1) if began else 0.0,
+            # seconds left on the document, measured here so the page never has to
+            # trust that its clock agrees with the server's
+            "expires_in": max(0, round(left)) if job.get("expires") else None,
+            "ttl": DOC_TTL_SEC}
 
 
 @app.get("/download/{job_id}")
 def download(job_id: str, client: str = ""):
     job = mine(job_id, client)
+    # checked here and not only in sweep(): the file's window is the file's window,
+    # whether or not anything has polled recently enough to have tidied it away.
+    if job["status"] == "done" and job.get("expires", 0) <= time.time():
+        sweep()
     if job["status"] != "done":
-        raise HTTPException(404, "not ready")
+        raise HTTPException(404, "expired" if job["status"] == "expired" else "not ready")
     return FileResponse(
         OUT / f"{job_id}.docx", filename=job["filename"],
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")

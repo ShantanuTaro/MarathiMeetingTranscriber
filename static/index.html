@@ -186,6 +186,15 @@
         job rather than all of them.</p>
     </details>
     <details>
+      <summary>How long do I have to download the document?</summary>
+      <p id="faq-ttl">Thirty minutes from the moment it is ready. The card counts down,
+        and when it reaches zero the file is deleted from the server for good. This is
+        not a storage service: the transcript is your meeting, and keeping it any
+        longer than it takes you to collect it would be a liability rather than a
+        feature. Nothing is backed up, and a server restart erases everything
+        immediately. Download it, then close the tab.</p>
+    </details>
+    <details>
       <summary>Can I treat the transcript as a record?</summary>
       <p>No. It is an unverified machine-generated draft: speech recognition makes
         mistakes and makes them confidently, and speaker labels are statistical
@@ -498,6 +507,24 @@ const clock = s => s >= 60
   : s.toFixed(1) + 's';
 
 const POLL_MS = 2000;
+const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+// The document is deleted when its window runs out, so the card counts down to it.
+// One interval for every card: a timer per card is a timer to leak. Each countdown
+// carries its own deadline, seeded from the server's own clock, so the page never
+// has to agree with the server about what time it is.
+setInterval(() => {
+  document.querySelectorAll('[data-deadline]').forEach(el => {
+    const left = Math.round((+el.dataset.deadline - Date.now()) / 1000);
+    if (left > 0) return void (el.textContent = 'Download within ' + mmss(left));
+    const row = el.closest('.done-row');
+    el.textContent = 'Expired and deleted from the server.';
+    el.classList.add('gone');
+    delete el.dataset.deadline;
+    const link = row && row.querySelector('a.button');
+    if (link) link.remove();
+  });
+}, 1000);
 
 // None of these backends report progress: they take a file and answer when they are
 // done. So the bar is drawn from elapsed time against an estimate, easing toward 95%
@@ -656,6 +683,13 @@ function poll(id, li, ui) {
     if (r.status === 404) throw new Error('gone');
     return r.json();
   }).then(j => {
+    if (j.status === 'expired') {
+      ui.at(1);
+      ui.msg.textContent = 'Document expired and was deleted. Upload again to remake it.';
+      ui.pct.textContent = '';
+      li.classList.add('stopped');
+      return ui.settle();
+    }
     if (j.status === 'error') return ui.fail(j.error);
     if (j.status === 'cancelled') {
       ui.at(0); ui.msg.textContent = 'Stopped'; ui.pct.textContent = '';
@@ -682,6 +716,14 @@ function poll(id, li, ui) {
       chip('low', j.low_confidence, 'unsure');
       chip('latin', j.latin_script, 'in latin');
       if (!flags.children.length) flags.textContent = 'Nothing flagged. Spot-check it anyway.';
+      if (j.expires_in != null) {
+        const warn = document.createElement('span');
+        warn.className = 'expiry';
+        warn.dataset.deadline = Date.now() + j.expires_in * 1000;
+        warn.textContent = 'Download within ' + mmss(j.expires_in);
+        warn.title = `Kept for ${Math.round((j.ttl || 1800) / 60)} minutes, then deleted`;
+        flags.appendChild(warn);
+      }
       li.appendChild(row);
       return ui.settle();
     }

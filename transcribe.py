@@ -372,20 +372,20 @@ def _sarvam(path, on_progress=None, should_stop=None, key=None, on_billed=None,
     document where one label means two people is worse than one with too many.
     """
     secs = duration(path)
-    if secs <= SARVAM_MAX_SEC:
-        return _sarvam_one(path, on_progress, should_stop, key, on_billed, on_stage)
-
     with tempfile.TemporaryDirectory() as tmp:
+        n = math.ceil(secs / SARVAM_MAX_SEC) or 1
         if on_stage:
-            on_stage("splitting")   # re-encoding two hours takes minutes, not seconds
+            on_stage("splitting" if n > 1 else "compressing")
         parts = _split_audio(path, secs, tmp)
-        _log(f"sarvam: {ts(secs)} is over the {ts(SARVAM_MAX_SEC)} limit for one "
-             f"file, so sending it as {len(parts)} parts")
+        if n > 1:
+            _log(f"sarvam: {ts(secs)} is over the {ts(SARVAM_MAX_SEC)} limit for one "
+                 f"file, so sending it as {len(parts)} parts")
         segs, speakers = [], 0
         for i, (part, offset) in enumerate(parts):
             # the stage still names the step; the part rides along after a separator
             # so the page can show both without a second field to thread through.
-            tail = f" \u00b7 part {i + 1} of {len(parts)}"
+            # One part is not "part 1 of 1", it is just the file.
+            tail = f" \u00b7 part {i + 1} of {len(parts)}" if len(parts) > 1 else ""
             stage = (lambda step, t=tail: on_stage(step + t)) if on_stage else None
             here = _sarvam_one(part, None, should_stop, key, on_billed, stage)
             for seg in here:
@@ -403,34 +403,49 @@ def _sarvam(path, on_progress=None, should_stop=None, key=None, on_billed=None,
         return segs
 
 
-def _split_audio(path, secs, into):
-    """Cut into as few equal parts as the cap allows. Equal, not cap-sized: a 2h18m
-    recording splits into two of 1h09m rather than a 2h part and an 18m stub.
+def _encode(path, out, at=0.0, span=None):
+    """One span of `path` as 64k mono AAC. Returns how long the result really is.
 
-    Re-encoded to 64k mono AAC rather than stream-copied, which is slower here and
-    much faster where it matters: a 269 MB source becomes about 35 MB to upload, and
-    one container works for every codec that came in.
+    Every upload goes through this, not only the ones over a length cap. Speech at
+    64k mono is indistinguishable to a recogniser from the 256k stereo it usually
+    arrives as, and the size difference is the whole job: a 269 MB source leaves as
+    about 35 MB, which is less to upload, less to hold in memory while uploading,
+    and one container for every codec that came in.
+
+    ponytail: costs a decode pass, which on a throttled host is minutes for an
+    hour of audio. Worth it there precisely because the upload is the slow part.
+    Stream-copy instead if you ever run this next to the API.
+    """
+    # -ss goes before -i so ffmpeg seeks by index instead of decoding up to the
+    # mark, which on a two-hour file is the difference between instant and minutes.
+    cut = ["-t", f"{span:.3f}"] if span else []
+    subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{at:.3f}", *cut,
+                    "-i", path, "-vn", "-ac", "1", "-c:a", "aac", "-b:a", "64k",
+                    out], check=True)
+    return duration(out)
+
+
+def _split_audio(path, secs, into):
+    """Cut into as few equal parts as the cap allows, one part if it fits. Equal,
+    not cap-sized: a 2h18m recording splits into two of 1h09m rather than a 2h part
+    and an 18m stub.
 
     ponytail: cuts on the clock, so a word at each seam may be damaged. Cutting on
-    silence means decoding the whole file first, which is what the local path does.
+    silence means decoding the whole file first, and there is nothing downstream
+    that would use the decoded audio.
     """
-    n = math.ceil(secs / SARVAM_MAX_SEC)
+    n = math.ceil(secs / SARVAM_MAX_SEC) or 1
     span = secs / n
     parts, at = [], 0.0
     for i in range(n):
         out = os.path.join(into, f"part{i:03d}.m4a")
-        # -ss goes before -i so ffmpeg seeks by index instead of decoding up to the
-        # mark, which on a two-hour file is the difference between instant and
-        # minutes. The last part takes everything left rather than a measured span,
-        # so nothing falls off the end.
-        cut = ["-t", f"{span:.3f}"] if i < n - 1 else []
-        subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{at:.3f}", *cut,
-                        "-i", path, "-vn", "-ac", "1", "-c:a", "aac", "-b:a", "64k",
-                        out], check=True)
+        # the last part takes everything left rather than a measured span, so
+        # nothing falls off the end; a single part is all "last".
+        got = _encode(path, out, at, span if i < n - 1 else None)
         parts.append((out, at))
         # measured, not assumed: the seek lands on a frame rather than the mark, and
         # starting the next part where this one really ended cannot drift.
-        at += duration(out)
+        at += got
     return parts
 
 
@@ -648,8 +663,6 @@ def _scribe(path, on_progress=None, should_stop=None, key=None, on_billed=None,
         raise RuntimeError("ASR=elevenlabs needs ELEVENLABS_API_KEY in the environment")
     if should_stop and should_stop():
         raise Cancelled
-    if on_stage:
-        on_stage("uploading")     # one POST, so this is the only step there is
     form = {"model_id": SCRIBE_MODEL, "diarize": "true",
             "timestamps_granularity": "word"}
     if KEYTERMS:
@@ -660,20 +673,32 @@ def _scribe(path, on_progress=None, should_stop=None, key=None, on_billed=None,
         form["language_code"] = SCRIBE_LANG
     if SPEAKERS:
         form["num_speakers"] = str(SPEAKERS)
-    _log(f"uploading {os.path.basename(path)} to {SCRIBE_MODEL} ...")
     # The charge lands with the request, not with a usable transcript: an empty
     # result costs the same. Say so before the bytes go out, not after.
     if on_billed:
         on_billed(duration(path))
-    with open(path, "rb") as f:
-        r = requests.post("https://api.elevenlabs.io/v1/speech-to-text",
-                          headers={"xi-api-key": key}, data=form,
-                          files={"file": (os.path.basename(path), f)},
-                          # One POST covers upload AND transcription, so the read
-                          # timeout has to outlast the job, but not by an hour. An
-                          # hour-long ceiling is how a dead socket became a worker
-                          # blocked until the server was restarted.
-                          timeout=(30, 1800))
+    with tempfile.TemporaryDirectory() as tmp:
+        # Scribe's cap is 10 hours, so nothing here needs splitting. It is still
+        # re-encoded: requests assembles a multipart body in memory, so the size of
+        # the file is the size of the upload's memory footprint.
+        if on_stage:
+            on_stage("compressing")
+        small = os.path.join(tmp, "audio.m4a")
+        _encode(path, small)
+        if should_stop and should_stop():
+            raise Cancelled
+        if on_stage:
+            on_stage("uploading")
+        _log(f"uploading {os.path.basename(path)} to {SCRIBE_MODEL} ...")
+        with open(small, "rb") as f:
+            r = requests.post(
+                "https://api.elevenlabs.io/v1/speech-to-text",
+                headers={"xi-api-key": key}, data=form,
+                files={"file": (os.path.basename(path), f)},
+                # One POST covers upload AND transcription, so the read timeout has
+                # to outlast the job, but not by an hour. An hour-long ceiling is
+                # how a dead socket became a worker blocked until a server restart.
+                timeout=(30, 1800))
     if not r.ok:                     # the body names the field it disliked; keep it
         raise RuntimeError(f"ElevenLabs {r.status_code}: {r.text[:500]}")
     segs = _scribe_segments(r.json())
