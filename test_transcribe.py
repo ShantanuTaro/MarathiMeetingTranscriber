@@ -69,6 +69,7 @@ def main():
     _check_isolation()
     _check_expiry()
     _check_billing()
+    _check_leaving()
     print("ok")
 
 
@@ -332,6 +333,34 @@ def _check_unknown_backend():
         assert "mlx" in str(e) and "sarvam" in str(e), e
     else:
         raise AssertionError("an unknown backend must not be accepted")
+
+
+def _check_leaving():
+    """A closed tab must drop the key, and a reload must not. Both look the same to
+    the browser, so the grace period is the whole mechanism: test it."""
+    import time
+
+    import app
+
+    app.LEAVE_GRACE_SEC = 0.05                    # the real 20s, sped up
+    app.SESSIONS.clear()
+    app.SESSIONS["t"] = {"asr": "sarvam", "key": "sk-secret", "spent": 0.0,
+                         "balance": None, "jobs": 0, "rate": 45}
+
+    # a reload: the page goes, then comes back inside the grace and claims it
+    app.leaving("t")
+    app.backends(session="t")
+    time.sleep(0.15)
+    assert app.session_key("t", "sarvam") == "sk-secret"
+
+    # a close: nothing comes back, so the key leaves memory on its own
+    app.leaving("t")
+    time.sleep(0.15)
+    assert "t" not in app.SESSIONS
+    assert app.session_key("t", "sarvam") is None
+    assert app.leaving("t") == {"ok": False}       # and a gone session arms nothing
+
+    app.SESSIONS.clear()
 
 
 def _check_looping():

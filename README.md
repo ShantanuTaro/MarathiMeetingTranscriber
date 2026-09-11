@@ -77,6 +77,37 @@ and a virtualenv of 40 MB.
 Read the retention policy of whichever service you pick before sending a recording
 that matters.
 
+## Why Sarvam and not a model on your laptop
+
+The full argument, with the specifics, is written up at
+**[`/blog/why-sarvam-marathi`](static/blog-why-sarvam-marathi.html)** (served at
+`/blog/why-sarvam-marathi`). The short version, from this project's own before and
+after:
+
+- **Code-switching is the whole game.** Real meetings run in Marathi with English
+  terms dropped in whole. On the same clip Sarvam returned them transliterated into
+  Devanagari (`agenda` &rarr; `अजेंडा`, `budget review` &rarr; `बजेट रिव्ह्यू`); the
+  local Whisper left them in Latin script. One script per document is most of what
+  the turquoise highlight exists to fix.
+- **Hall audio breaks a general model differently.** One mic, a fan, a PA with its own
+  echo, and Whisper falls into repetition loops that eat a real minute of discussion.
+  Its own compression-ratio check catches them and then keeps the loop anyway after
+  the last temperature, which is why `looping()` is still in `transcribe.py`.
+- **Language auto-detect is a coin flip** on code-switched audio, and losing it costs
+  a whole English transcript of a Marathi hour. The language is pinned here.
+- **A keyterms list beats a prompt.** Sarvam takes up to 50 village names, scheme
+  acronyms and the names in the room as a decoder bias; a local Whisper gets a prompt
+  it is free to ignore.
+- **The local build cost more to keep.** 3 GB of weights, a GPU, four heavy
+  dependencies, and a VAD-trim / chunk / level pipeline of its own to maintain, with
+  Marathi that was still worse.
+
+What that buys is not free: `saaras:v4` reports **no per-word confidence**, so the
+yellow highlighting is off on this backend, timestamps are per sentence, and the audio
+leaves the machine. On-device is still the right call when the recording cannot; then
+budget the review time instead. No word error rate was measured here, and the post
+says so.
+
 ## Setup
 
 `ffmpeg` is required, on `PATH`: it reads the duration of an upload and cuts anything
@@ -358,15 +389,20 @@ transcribe.py                 upload -> poll -> segments -> .docx  (also a CLI)
 test_transcribe.py            self-check, no audio and no network
 static/index.html             the whole front end, one file
 gen_guides.py                 writes the two guide pages; edit content here
+static/blog-why-sarvam-marathi.html   the "why Sarvam" write-up, hand-written prose
 static/help-sarvam-api-key.html
 static/help-elevenlabs-api-key.html
 static/terms.html
 static/portal.css             portal components; style.css is the shared design system
+docs/shots.py                 regenerates the screenshots below from the real pages
 docs/                         full-page screenshots, light and dark
 ```
 
-Screenshots are captured headlessly from the real page with sample data; see
-`docs/`. The recording names and figures in them are invented; no meeting content is
+Screenshots are regenerated with `python docs/shots.py` (add `portal`, `session` or
+`guide` to do one set). It starts the real app, stages a session and two jobs in its
+memory, and drives headless Chrome over the DevTools protocol, because a full-page
+capture and `prefers-color-scheme: dark` are both beyond the `--screenshot` flag. The
+recording names, the balance and the flag counts are invented; no meeting content is
 published in this repo.
 
 ## Terms, and the disclaimer that goes with them

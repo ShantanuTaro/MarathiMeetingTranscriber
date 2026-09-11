@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!--canonical-->
+  <title>Why Sarvam beats Whisper on Marathi meeting audio</title>
+  <meta name="description" content="This project shipped on a local Whisper build and then deleted it. What Sarvam's saaras:v4 did better on real Marathi meeting recordings, what it gives up, and when an on-device model is still the right call." />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Why Sarvam beats Whisper on Marathi meeting audio" />
+  <meta property="og:description" content="What an India-first ASR model got right on code-switched Marathi that 3 GB of local weights did not, and the three things it gives up in exchange." />
+  <link rel="stylesheet" href="/static/fonts.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/portal.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='.7' y2='1'><stop offset='0' stop-color='%2337d7fa'/><stop offset='.4' stop-color='%234b72fe'/><stop offset='.68' stop-color='%23ff8df2'/><stop offset='1' stop-color='%23ff8705'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50' y='72' text-anchor='middle' font-family='system-ui' font-size='58' font-weight='700' fill='%23fff'>म</text></svg>" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Why Sarvam beats Whisper on Marathi meeting audio","description":"What an India-first ASR model got right on code-switched Marathi that 3 GB of local weights did not, and the three things it gives up in exchange.","datePublished":"2026-09-11","inLanguage":"en","keywords":"Marathi transcription, Sarvam AI, saaras:v4, Whisper, on-device ASR, code-switching, Devanagari"}</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="mark">म</span> Marathi Meeting Transcriber</a>
+    <nav>
+      <a href="/help/sarvam-api-key">Sarvam key</a>
+      <a href="/help/elevenlabs-api-key">ElevenLabs key</a>
+      <a href="/">Back to the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <article class="guide">
+    <p class="crumb"><a href="/">Marathi Meeting Transcriber</a> &rsaquo; Notes</p>
+    <h1>Why Sarvam beats Whisper on Marathi meeting audio</h1>
+    <p class="lede">This tool was built twice. The first version ran a local Whisper on
+      a laptop GPU: 3 GB of weights, a Silero VAD trim, silence-aware chunking, a
+      levelling pass. The second version deleted all of it and sends the audio to
+      Sarvam&rsquo;s <code>saaras:v4</code> instead. The deciding factor was not speed
+      or cost, and it was not privacy, which the local build won outright. It was that
+      on real Marathi meeting recordings the hosted India-first model made fewer of the
+      mistakes a human then has to find.</p>
+
+    <dl class="facts">
+      <div class="fact"><dt>Was</dt><dd>Local Whisper: 3 GB of weights, a GPU, <code>numpy</code> + <code>mlx</code> + <code>onnxruntime</code> + <code>sherpa-onnx</code></dd></div>
+      <div class="fact"><dt>Is</dt><dd>Sarvam <code>saaras:v4</code> over HTTP, and a 40 MB virtualenv</dd></div>
+      <div class="fact"><dt>Decided by</dt><dd>Code-switched English, and loops on hall audio</dd></div>
+      <div class="fact"><dt>Costs</dt><dd>&#8377;30 per hour of audio, &#8377;45 with speaker labels</dd></div>
+      <div class="fact"><dt>Given up</dt><dd>Per-word confidence, per-word timestamps, and audio that never leaves</dd></div>
+      <div class="fact"><dt>Benchmarked</dt><dd>No. Real meetings and a test clip, no word error rate</dd></div>
+    </dl>
+
+    <h2 id="code-switching">Real Marathi meetings are not in Marathi</h2>
+    <p>A gram sabha or a taluka review runs in Marathi with English load-bearing
+      words dropped in whole: <em>agenda</em>, <em>budget review</em>, <em>tender</em>,
+      <em>sanction</em>, <em>proposal</em>. Nobody stops to translate them, and a
+      transcript that renders them in Latin script is not wrong so much as
+      inconsistent: the same spoken word appears two ways depending on which side of
+      the switch the decoder thought it was on.</p>
+    <p>This is where the two models actually differed. On the same clip, Sarvam brought
+      the English terms back <strong>transliterated into Devanagari</strong>
+      (<code>agenda</code> &rarr; <code>अजेंडा</code>, <code>budget review</code> &rarr;
+      <code>बजेट रिव्ह्यू</code>), which is one script for one document. The local
+      Whisper left them in Latin script. Almost all of the turquoise highlighting in
+      the finished <code>.docx</code> exists to catch exactly that, and with Sarvam
+      running there is simply less of it to catch.</p>
+    <p>The second, nastier version of the same problem is language detection. Left on
+      auto, a code-switched recording is a coin flip: get it wrong in the first thirty
+      seconds and the model commits, and an hour of Marathi comes back as an hour of
+      confident English. That is why this pipeline pins the language explicitly rather
+      than letting anything guess.</p>
+
+    <h2 id="loops">The failure mode that ate whole minutes</h2>
+    <p>Hall audio, meaning one microphone, a ceiling fan, forty people and a PA
+      system with its own echo, is where a general-purpose model stops degrading
+      gracefully and starts hallucinating. The specific Whisper behaviour on this
+      material is a repetition loop: the decoder gets stuck and emits the same fragment dozens of
+      times, filling a real minute of discussion with
+      <code>प्रदावादा प्रदावादा प्रदावादा&hellip;</code></p>
+    <p>Whisper knows this happens. It runs a compression-ratio check internally to
+      trigger a retry at a higher temperature, and after the last temperature it
+      <strong>keeps the loop anyway</strong> rather than dropping it. The document
+      builder here still carries that same check (<code>looping()</code>, a
+      <code>zlib</code> ratio over 2.6) to mark those paragraphs, because the guard
+      had to exist even after the loop was in the transcript. On Sarvam the guard is
+      still armed and has had far less to do.</p>
+
+    <h2 id="local-cost">What the on-device version actually cost</h2>
+    <p>Running the model locally is usually argued for on privacy and on price, and
+      both arguments are real. What gets left out is the rest of the bill:</p>
+    <ul class="plain">
+      <li><strong>Three gigabytes of weights</strong> that a user has to download
+        before the tool does anything, and a GPU to make them usable.</li>
+      <li><strong>Four heavy dependencies</strong> (<code>numpy</code>,
+        <code>mlx</code>, <code>onnxruntime</code>, <code>sherpa-onnx</code>),
+        each with its own platform quirks. Deleting the local path is what took this
+        project down to a 40 MB virtualenv with <code>ffmpeg</code> as the only
+        binary requirement.</li>
+      <li><strong>An audio pipeline of your own.</strong> VAD trimming, silence-aware
+        chunking and a levelling pass were not decoration; a raw hour fed straight to
+        a local model is worse than the same hour prepared. That is code that has to
+        be maintained and tuned, and it is the part nobody counts.</li>
+      <li><strong>No vocabulary bias.</strong> Sarvam takes a keyterms list, up
+        to 50 village names, scheme acronyms and the names of the people in the room,
+        as a decoder bias rather than as a prompt. Getting the same effect out of a
+        local Whisper means a prompt it is free to ignore.</li>
+    </ul>
+    <p>None of that made the local transcript better. It made the tool heavier while
+      its Marathi stayed worse than the API it was competing with, which is a bad
+      trade in both directions at once.</p>
+
+    <h2 id="tradeoffs">What you give up by using Sarvam</h2>
+    <p>This is not a free win, and pretending otherwise is how people get surprised by
+      a transcript later:</p>
+    <ul class="watch">
+      <li><strong>No per-word confidence.</strong> <code>saaras:v4</code> reports none
+        at all, so the yellow &ldquo;the model was unsure here&rdquo; highlighting is
+        off on this backend and the review checklist can only list Latin-script words.
+        A more accurate transcript that cannot tell you where it is weak is a real
+        loss, not a technicality.</li>
+      <li><strong>Timestamps are per sentence.</strong> Each review row&rsquo;s time is
+        interpolated across its sentence: right to the minute, not to the second.</li>
+      <li><strong>The audio leaves the machine.</strong> Unconditionally, and that is
+        the one thing the local build did better. Read the provider&rsquo;s retention
+        policy before sending a recording that matters.</li>
+      <li><strong>Billing starts when the job starts.</strong> A run that comes back
+        empty, errors, or gets stopped is billed in full, because there is no cancel
+        endpoint to call.</li>
+    </ul>
+
+    <h2 id="when-not">When an on-device model is still right</h2>
+    <p>Two cases, and they are not rare. <strong>If the recording cannot leave the
+      building</strong>, a legal matter, an HR investigation, anything under a
+      policy that forbids third-party processing, then local is the only
+      answer, and the accuracy gap is a cost you absorb by budgeting more human review
+      time. Expect Latin-script English, expect loops on hall audio, and read the
+      whole transcript rather than a checklist.</p>
+    <p><strong>If you need to know which words to doubt</strong>, a hosted model that
+      reports per-word confidence is the better tool: this app ships ElevenLabs Scribe
+      for exactly that, and its per-word logprobs are what make the yellow
+      highlighting mean something. Its Marathi is most likely weaker than
+      Sarvam&rsquo;s. That is the trade: confidence data for accuracy, picked per
+      upload rather than once for everybody.</p>
+
+    <h2 id="method">How this was decided, honestly</h2>
+    <p>This is one project&rsquo;s experience on real Marathi meeting recordings and a
+      test clip, not a benchmark. No word error rate was computed, no held-out set was
+      scored, and nothing here is a claim about any model&rsquo;s performance in
+      general. What was compared was the thing that actually mattered to the people
+      using it: how much of the finished document a human still had to fix. If you are
+      choosing a backend for your own recordings, run one real meeting through both.
+      The app lets you pick the backend per upload precisely so that the comparison
+      costs an hour of audio and nothing more.</p>
+  </article>
+</div>
+
+<div class="wrap">
+  <div class="guide-cta">
+    <div>
+      <strong>Try it on your own recording</strong>
+      <p>Bring a Sarvam key, drop an hour of audio, get a Word document with the
+        doubts collected at the top.</p>
+    </div>
+    <a class="button" href="/">Transcribe a recording</a>
+  </div>
+  <p class="guide-note">Sarvam pricing and the key steps are in the
+    <a href="/help/sarvam-api-key">Sarvam API key guide</a>. A transcript from any
+    backend here is a draft for review, not a verbatim record.</p>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-cols">
+      <div>
+        <strong>Marathi Meeting Transcriber</strong>
+        <p>Marathi meeting audio to a reviewable Word document.</p>
+      </div>
+      <div>
+        <span class="label">Guides</span>
+        <a href="/help/sarvam-api-key">Get a Sarvam API key</a>
+        <a href="/help/elevenlabs-api-key">Get an ElevenLabs API key</a>
+      </div>
+      <div>
+        <span class="label">Tool</span>
+        <a href="/">Transcribe a recording</a>
+        <a href="/#how">How it works</a>
+        <a href="/terms">Terms &amp; disclaimer</a>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>Your recording is uploaded to the service you pick.</span>
+      <span>A draft for review, not a verbatim record.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

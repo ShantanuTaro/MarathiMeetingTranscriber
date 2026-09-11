@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!--canonical-->
-  <title>Marathi Meeting Transcriber</title>
+  <title>मराठी Meeting Transcriber</title>
   <meta name="description" content="Turn Marathi meeting recordings into a Word document, with every uncertain word highlighted and timestamped for review." />
   <link rel="stylesheet" href="/static/fonts.css" />
   <link rel="stylesheet" href="/static/style.css" />
@@ -26,59 +26,65 @@
 </header>
 
 <div class="wrap">
-  <section class="hero hero-grid">
-    <div>
-      <h1>Marathi meetings,<br /><span>in writing.</span></h1>
-      <p>Drop an hour of audio. Get a Word document in Devanagari with every word the
-        model was unsure about highlighted and timestamped, so a human checks the doubts
-        instead of re-listening to the whole recording.</p>
-      <div class="stats">
-        <div id="stat-speed"><span class="n">~15 min</span><span class="l">per hour of audio</span></div>
-        <div><span class="n">Your key</span><span class="l">for this session only</span></div>
-        <div><span class="n">.docx</span><span class="l">ready to edit</span></div>
+  <section class="hero">
+    <div class="hero-grid">
+      <h1><span class="deva">मराठी</span> <br /> meetings,<br /><span>in writing.</span></h1>
+      <div class="hero-copy">
+        <p>Drop an hour of audio. Get a Word document in Devanagari with every word the
+          model was unsure about highlighted and timestamped, so a human checks the doubts
+          instead of re-listening to the whole recording.</p>
+        <div class="stats">
+          <div id="stat-speed"><span class="n">~10 min</span><span class="l">per hour of audio</span></div>
+          <div class="stat-private"><span class="n">Kept nowhere</span><span class="l">Key stays in memory
+            and goes with the tab - document deletes in 30 mins</span></div>
+          <div><span class="n">.docx</span><span class="l">ready to edit</span></div>
+        </div>
       </div>
     </div>
 
-    <div class="lookup">
-      <span class="label">Transcribed by</span>
-      <ul class="models" id="models"></ul>
+    <div class="lookup lookup-split">
+      <div class="lookup-col">
+        <span class="label">Transcribed by</span>
+        <ul class="models" id="models"></ul>
 
-      <div class="session" id="session" hidden>
-        <form id="session-form">
-          <label class="label" for="api-key"><span id="key-for">API</span> key
-            for this session only</label>
-          <input type="password" id="api-key" placeholder="paste it here" autocomplete="off" spellcheck="false" />
-          <div id="balance-row" hidden>
-            <label class="label" for="balance">Credits left, &#8377; (optional)</label>
-            <input type="number" id="balance" placeholder="100" min="0" step="0.01" />
-          </div>
-          <div class="session-row">
-            <button type="submit" class="button" id="session-go">Start session</button>
-            <button type="button" class="link" id="session-cancel">Cancel</button>
-            <a class="session-keys" id="keys-link" rel="noopener" target="_blank">Get a key</a>
-          </div>
-          <p class="session-note">Held in this server&rsquo;s memory until you end the
-            session: never written to disk, never sent back to this page, never
-            saved anywhere. Closing the tab does not end it; the <em>End session</em>
-            button does.</p>
-          <p class="session-err" id="session-err" hidden></p>
-        </form>
-      </div>
-
-      <div class="session-live" id="session-live" hidden>
-        <span class="dot"></span>
-        <div>
-          <strong id="session-spent"></strong>
-          <span id="session-jobs"></span>
+        <div class="session" id="session" hidden>
+          <form id="session-form">
+            <label class="label" for="api-key"><span id="key-for">API</span> key
+              for this session only</label>
+            <input type="password" id="api-key" placeholder="paste it here" autocomplete="off" spellcheck="false" />
+            <div id="balance-row" hidden>
+              <label class="label" for="balance">Credits left, &#8377; (optional)</label>
+              <input type="number" id="balance" placeholder="100" min="0" step="0.01" />
+            </div>
+            <div class="session-row">
+              <button type="submit" class="button" id="session-go">Start session</button>
+              <button type="button" class="link" id="session-cancel">Cancel</button>
+              <a class="session-keys" id="keys-link" rel="noopener" target="_blank">Get a key</a>
+            </div>
+            <p class="session-note">Held in this server&rsquo;s memory only: never written
+              to disk, never sent back to this page, never saved anywhere. Close the tab
+              and it is dropped seconds later; a reload keeps it. <em>End session</em>
+              ends it now.</p>
+            <p class="session-err" id="session-err" hidden></p>
+          </form>
         </div>
-        <button type="button" class="link" id="session-end">End session</button>
+
+        <div class="session-live" id="session-live" hidden>
+          <span class="dot"></span>
+          <div>
+            <strong id="session-spent"></strong>
+            <span id="session-jobs"></span>
+          </div>
+          <button type="button" class="link" id="session-end">End session</button>
+        </div>
       </div>
 
-      <label class="label" for="file">Meeting recording</label>
-      <div class="drop" id="drop" tabindex="0" role="button"
-           aria-label="Choose an audio file, or drop or paste one here">
-        <span class="big">Drop a recording here</span>
-        <span class="sub">or click to browse &middot; or press <kbd>&#8984;V</kbd> to paste</span>
+      <div class="lookup-col">
+        <label class="label" for="file">Meeting recording</label>
+        <div class="drop" id="drop" tabindex="0" role="button"
+             aria-label="Choose an audio file, or drop or paste one here">
+          <span class="big">Drop a recording here</span>
+          <span class="sub">or click to browse &middot; or press <kbd>&#8984;V</kbd> to paste</span>
       </div>
       <input type="file" id="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.aac,.flac,.ogg,.opus,.mp4,.mov,.aiff,.wma" multiple hidden />
       <div class="jobs-head" id="jobs-head" hidden>
@@ -91,6 +97,7 @@
         <span class="chip">.aac</span><span class="chip">.flac</span><span class="chip">.ogg</span>
         <span class="chip">.mp4</span><span class="chip">.mov</span>
         <span class="hint">anything ffmpeg reads</span>
+      </div>
       </div>
     </div>
   </section>
@@ -162,8 +169,10 @@
       <summary>Where is my API key kept?</summary>
       <p>In this server&rsquo;s memory, for the length of the session. It is never
         written to disk, never sent back to the page, and never included in any status
-        response. Ending the session, or restarting the server, erases it.
-        Closing the tab does not: use the End session button.</p>
+        response. Ending the session, closing the tab, or restarting the server erases
+        it. A closed tab is dropped a few seconds later rather than instantly, because
+        a reload looks exactly the same to the browser and has to be able to claim the
+        session back.</p>
     </details>
     <details>
       <summary>Why does the progress bar creep instead of stepping?</summary>
@@ -223,6 +232,7 @@
         <a href="#how">How it works</a>
         <a href="#review">Reading the document</a>
         <a href="#faq">FAQ</a>
+        <a href="/blog/why-sarvam-marathi">Why Sarvam for Marathi</a>
       </div>
       <div>
         <span class="label">API keys</span>
@@ -451,6 +461,15 @@ const engine = (function () {
       .catch(m => { err.textContent = m; err.hidden = false; })
       .then(() => { go.disabled = false; go.textContent = 'Start session'; });
   };
+
+  // The tab going away must not leave the key in this server's memory. pagehide
+  // fires for a reload as well, so this only starts the server's clock: the page
+  // that comes back calls /backends, which claims the session and cancels it.
+  // sendBeacon, because a fetch started in pagehide is not guaranteed to be sent.
+  addEventListener('pagehide', () => {
+    const s = store.get();
+    if (s) navigator.sendBeacon('/session/' + s.token + '/leaving');
+  });
 
   $('session-end').onclick = () => {
     const s = store.get();

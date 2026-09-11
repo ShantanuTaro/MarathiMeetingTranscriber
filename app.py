@@ -69,6 +69,21 @@ BACKENDS = {
 # "spent" is what this session has told that backend to bill.
 SESSIONS = {}
 
+# How long a session outlives the page. The tab beacons /leaving as it goes, but
+# pagehide fires for a reload exactly as it does for a close, so the beacon only
+# arms a timer: whichever page comes back claims the session and disarms it. Short,
+# because a tab that is really gone must not leave a key sitting in memory.
+LEAVE_GRACE_SEC = int(os.getenv("LEAVE_GRACE_SEC", "20"))
+
+
+def claimed(token):
+    """A page is here and using this session, so cancel any pending expiry."""
+    s = SESSIONS.get(token)
+    t = s.pop("leaving", None) if s else None
+    if t:
+        t.cancel()
+    return s
+
 
 def session_key(token, asr):
     s = SESSIONS.get(token) or {}
@@ -247,21 +262,36 @@ def terms():
     return serve("terms.html", "/terms")
 
 
+def prose(prefix, slug, kind):
+    """Serve static/<prefix>-<slug>.html at /<prefix>/<slug>.
+
+    resolve() before the check: "/help/../../etc/passwd" is a path this would
+    otherwise happily read, and a 404 is the only correct answer to it.
+    """
+    page = (HERE / "static" / f"{prefix}-{slug}.html").resolve()
+    if not page.is_file() or page.parent != (HERE / "static").resolve():
+        raise HTTPException(404, f"no such {kind}")
+    return serve(page.name, f"/{prefix}/{slug}")
+
+
 # Getting a key is the one step this app cannot do for you, and both providers hide
 # it behind a dashboard tour. These are the tours, written down. Real URLs rather
 # than a query string, because they are meant to be linked to and indexed.
 @app.get("/help/{slug}", response_class=HTMLResponse)
 def help_page(slug: str):
-    page = HERE / "static" / f"help-{slug}.html"
-    # resolve() before the check: "/help/../../etc/passwd" is a path this would
-    # otherwise happily read, and a 404 is the only correct answer to it.
-    if not page.resolve().is_file() or page.resolve().parent != (HERE / "static").resolve():
-        raise HTTPException(404, "no such guide")
-    return serve(page.name, f"/help/{slug}")
+    return prose("help", slug, "guide")
+
+
+# Long-form notes. Same deal: a real URL, because the reason this app picked the
+# backend it did is the question people ask before they paste a key.
+@app.get("/blog/{slug}", response_class=HTMLResponse)
+def blog_page(slug: str):
+    return prose("blog", slug, "post")
 
 
 # Every page worth indexing, in the order a reader would meet them.
-PAGES = ("/", "/help/sarvam-api-key", "/help/elevenlabs-api-key", "/terms")
+PAGES = ("/", "/help/sarvam-api-key", "/help/elevenlabs-api-key",
+         "/blog/why-sarvam-marathi", "/terms")
 
 
 @app.get("/sitemap.xml")
@@ -361,6 +391,8 @@ def jobs(client: str = ""):
 
 @app.get("/backends")
 def backends(session: str = ""):
+    # the page's first call after a load, so it is also how a reload says "still me"
+    claimed(session)
     return {"options": options(session), "wallet": _wallet(session)}
 
 
@@ -406,7 +438,23 @@ def session_state(token: str):
 def end_session(token: str):
     """End it: the key leaves memory. Jobs already running keep the copy they were
     handed; killing those is Stop's job, and they are billed either way."""
+    claimed(token)                      # drop the timer with the session it belongs to
     return {"ok": SESSIONS.pop(token, None) is not None}
+
+
+@app.post("/session/{token}/leaving")
+def leaving(token: str):
+    """The page is going away. Start the clock, do not end the session: a reload
+    fires this too, and taking the key away from someone who just pressed refresh
+    is worse than holding it for LEAVE_GRACE_SEC. POST because this arrives as a
+    sendBeacon, which cannot send anything else."""
+    s = claimed(token)
+    if not s:
+        return {"ok": False}
+    s["leaving"] = t = threading.Timer(LEAVE_GRACE_SEC, SESSIONS.pop, (token, None))
+    t.daemon = True                     # never hold the process open for a dead tab
+    t.start()
+    return {"ok": True, "grace": LEAVE_GRACE_SEC}
 
 
 @app.get("/status/{job_id}")

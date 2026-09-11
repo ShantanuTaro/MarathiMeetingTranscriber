@@ -62,26 +62,41 @@ a:hover { color:var(--accent-hover); }
 .nav nav a:hover { color:var(--ink); }
 
 /* Hero - the spectrum appears twice on the page: here and on the code. */
+.hero { display:grid; gap:44px; padding:70px 0 80px; }
 .hero-grid { position:relative; display:grid; grid-template-columns:1fr 1fr; gap:72px;
-  align-items:start; padding:88px 0 96px; }
-.hero-grid::before { content:""; position:absolute; inset:-40px -40px auto; height:420px; z-index:-1;
+  align-items:end; }
+/* Deliberately a fixed height, not the row's: the band's bottom edge cuts across the
+   last line of the copy instead of boxing it in. */
+.hero-grid::before { content:""; position:absolute; inset:-40px -40px auto; height:220px; z-index:-1;
   background:var(--wash); border-radius:var(--r-lg); }
 .hero h1 { font-size:clamp(40px, 5vw, 64px); font-weight:600; letter-spacing:-.04em;
-  line-height:1.04; color:var(--ink); margin:0 0 22px; }
+  line-height:1.04; color:var(--ink); margin:0; }
 .hero h1 span { background:var(--spectrum); -webkit-background-clip:text; background-clip:text;
   color:transparent; }
-/* Scoped to the headline column: as `.hero p` this also matched the suggestion panel's header,
+/* .deva carries the Devanagari fallback stack; undo the gradient clip above. */
+.hero h1 .deva { background:none; color:var(--ink); }
+/* Scoped to the copy column: as `.hero p` this also matched the suggestion panel's header,
    which sits inside the hero, and beat `.suggest-head` on specificity - squashing it to 420px. */
-.hero > div > p { font-size:17px; line-height:1.6; color:var(--ink-2); max-width:420px; margin:0 0 32px; }
+.hero-copy p { font-size:17px; line-height:1.6; color:var(--ink-2); max-width:480px; margin:0 0 25px; }
 .stats { display:flex; gap:32px; flex-wrap:wrap; }
 .stats .n { display:block; font-family:var(--font-mono); font-size:22px; font-weight:600;
   color:var(--ink); letter-spacing:-.03em; }
-.stats .l { font-size:12px; color:var(--ink-3); margin-top:4px; display:block; }
+.stats .l { font-size:12px; color:var(--ink-3); margin-top:0; display:block; }
+/* The claim people actually want checked before they paste a key, so it gets the
+   spectrum and the room for a sentence instead of a three-word label. The rule is
+   under the words, not in them: the cyan end of the spectrum is around 1.8:1 on
+   white, which is not a contrast to set a headline in. */
+.stat-private { max-width:24ch; }
+.stat-private .n { display:inline-block; position:relative; padding-bottom:0; }
+.stat-private .n::after { content:""; position:absolute; left:0; right:0; bottom:0;
+  height:0;}
 
 /* Lookup */
-.lookup { position:relative; max-width:680px; background:var(--bg); border:1px solid var(--line);
+.lookup { position:relative; background:var(--bg); border:1px solid var(--line);
   border-radius:var(--r-lg); padding:24px; box-shadow:0 1px 2px rgba(0,0,0,.03), 0 16px 40px -24px rgba(0,0,0,.16); }
 .lookup label { display:block; margin-bottom:10px; }
+.lookup-split { display:grid; grid-template-columns:1fr 1fr; gap:36px; padding:28px; }
+.lookup-col + .lookup-col { padding-left:36px; border-left:1px solid var(--line); }
 .lookup textarea { width:100%; min-height:132px; resize:vertical; font:15px/1.6 var(--font);
   color:var(--ink); background:var(--bg-alt); border:1px solid transparent;
   border-radius:var(--r-md); padding:14px 16px; caret-color:var(--accent);
@@ -265,9 +280,11 @@ article > h2 { display:block; margin:0 0 14px; }
 
 /* ── Mobile ── */
 @media (max-width:64rem) {
-  .hero-grid { grid-template-columns:1fr; gap:44px; padding:56px 0 72px; }
-  .hero-grid::before { height:300px; }
-  .lookup { max-width:none; }
+  .hero { gap:36px; padding:56px 0 72px; }
+  .hero-grid { grid-template-columns:1fr; gap:28px; align-items:start; }
+  .lookup-split { grid-template-columns:1fr; gap:28px; }
+  .lookup-col + .lookup-col { padding-left:0; border-left:0;
+    padding-top:28px; border-top:1px solid var(--line); }
   .split { grid-template-columns:1fr; gap:28px; }
   .steps { grid-template-columns:1fr; }
 }
@@ -276,7 +293,7 @@ article > h2 { display:block; margin:0 0 14px; }
   .nav nav { display:none; }            /* the same links are in the footer */
   .nav .wrap { gap:16px; }
   section.band { padding:56px 0; }
-  .lookup { padding:18px; border-radius:var(--r-md); }
+  .lookup, .lookup-split { padding:18px; border-radius:var(--r-md); }
   .cta { flex-direction:column; align-items:flex-start; }
   .meta a { margin-left:0; }
   .faq details p { padding-right:22px; }

@@ -35,6 +35,7 @@ FOOT = """<footer>
         <span class="label">Tool</span>
         <a href="/">Transcribe a recording</a>
         <a href="/#how">How it works</a>
+        <a href="/blog/why-sarvam-marathi">Why Sarvam for Marathi</a>
         <a href="/terms">Terms &amp; disclaimer</a>
       </div>
     </div>

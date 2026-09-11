@@ -7,6 +7,9 @@
 :root {
   --font-deva:"Kohinoor Devanagari", "Noto Sans Devanagari", "Nirmala UI",
               "Devanagari Sangam MN", var(--font);
+  /* --spectrum mirrored: a sweep tiles this one with no seam at the loop point. */
+  --spectrum-loop:linear-gradient(90deg, #37d7fa, #4b72fe, #ff8df2, #ff8705,
+                                         #ff8df2, #4b72fe, #37d7fa);
 }
 .deva { font-family:var(--font-deva); }
 /* The nav mark is a Devanagari letter, and the mono face is a latin-only subset. */
@@ -130,7 +133,18 @@
   font-family:var(--font-mono); font-size:11px; letter-spacing:.08em;
   text-transform:uppercase; color:var(--ink-3); }
 .session-row .link:hover { color:var(--ink); text-decoration:underline; }
-.session-keys { margin-left:auto; font-size:12px; color:var(--ink-3); }
+/* The one link that unblocks a first visit: nobody transcribes anything without a
+   key, so it gets the spectrum under it, travelling, instead of the grey the rest
+   of this row uses. The text itself stays ink - gradient text at 12px reads as
+   washed out, and this is a link that has to be legible. */
+.session-keys { position:relative; margin-left:auto; font-size:12px; font-weight:500;
+  color:var(--ink); text-decoration:none; padding-bottom:3px; }
+.session-keys:hover { color:var(--ink); }
+.session-keys::after { content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  border-radius:2px; background:var(--spectrum-loop); background-size:200% 100%;
+  animation:key-sweep 2.4s linear infinite; }
+.session-keys:hover::after { height:3px; animation-duration:1.1s; }
+@keyframes key-sweep { to { background-position:-200% 0; } }
 .session-note { margin:12px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); }
 .session-err { margin:10px 0 0; font-size:12px; color:var(--no-ink); }
 
@@ -160,6 +174,7 @@
 
 @media (prefers-reduced-motion:reduce) {
   .job .bar i, .job .bar i.creep { transition:none; }
+  .session-keys::after { animation:none; }
 }
 
 /* API key guides. Long-form pages that exist to be read and to be found, so the
@@ -211,6 +226,10 @@ pre.snippet { margin:0; padding:16px 18px; overflow-x:auto; border:1px solid var
 pre.snippet code { font-family:var(--font-mono); font-size:12.5px; line-height:1.7;
   padding:0; background:none; color:var(--ink-2); white-space:pre; }
 
+/* Prose lists. The guides only ever needed .watch; the notes read as an argument
+   and an argument needs ordinary bullets. */
+.guide ul.plain { margin:0 0 14px; padding-left:20px; }
+.guide ul.plain li { font-size:15px; line-height:1.75; color:var(--ink-2); margin-bottom:10px; }
 .watch { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
 .watch li { padding:15px 18px; font-size:14.5px; line-height:1.65; color:var(--ink-2);
   border:1px solid var(--line); border-left:3px solid var(--orange);
